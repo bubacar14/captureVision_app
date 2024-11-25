@@ -25,7 +25,7 @@ function App() {
       try {
         const apiUrl = import.meta.env.PROD 
           ? 'https://wedding-planner-app-qlvw.onrender.com/api/weddings'
-          : 'http://localhost:3001/api/weddings';
+          : 'http://localhost:3000/api/weddings';
         const response = await fetch(apiUrl);
         const data = await response.json();
         setWeddings(data);
@@ -51,7 +51,7 @@ function App() {
     try {
       const apiUrl = import.meta.env.PROD 
         ? 'https://wedding-planner-app-qlvw.onrender.com/api/weddings'
-        : 'http://localhost:3001/api/weddings';
+        : 'http://localhost:3000/api/weddings';
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
