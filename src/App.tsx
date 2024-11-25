@@ -36,27 +36,42 @@ function App() {
         credentials: 'include'
       };
 
-      const response = await fetch(url, {
-        ...defaultOptions,
-        ...options,
-        headers: {
-          ...defaultOptions.headers,
-          ...options.headers
-        }
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error:', {
-          url,
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText
+      try {
+        const response = await fetch(url, {
+          ...defaultOptions,
+          ...options,
+          headers: {
+            ...defaultOptions.headers,
+            ...options.headers
+          }
         });
-        throw new Error(errorText);
-      }
 
-      return response.json();
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('API Error:', {
+            url,
+            status: response.status,
+            statusText: response.statusText,
+            error: errorText
+          });
+          throw new Error(
+            response.status === 0 
+              ? 'Le serveur n\'est pas accessible. Veuillez vérifier votre connexion.' 
+              : `Erreur ${response.status}: ${response.statusText}`
+          );
+        }
+
+        return response.json();
+      } catch (error) {
+        console.error('Network Error:', error);
+        if (!navigator.onLine) {
+          throw new Error('Pas de connexion Internet. Veuillez vérifier votre connexion.');
+        }
+        if (error instanceof TypeError && error.message === 'Failed to fetch') {
+          throw new Error('Le serveur n\'est pas accessible. Veuillez réessayer plus tard.');
+        }
+        throw error;
+      }
     }
   };
 

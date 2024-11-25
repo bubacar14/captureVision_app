@@ -72,29 +72,8 @@ app.post('/api/weddings', async (req: Request, res: Response) => {
       });
     }
 
-    // Ensure date is valid
-    const date = new Date(req.body.date);
-    if (isNaN(date.getTime())) {
-      return res.status(400).json({ 
-        message: 'Invalid date format',
-        errors: { date: 'Invalid date format' }
-      });
-    }
-
-    // Create and save the wedding
-    const wedding = new Wedding({
-      ...req.body,
-      date: date,
-      guestCount: parseInt(req.body.guestCount) || 0,
-      notifications: {
-        oneWeek: Boolean(req.body.notifications?.oneWeek),
-        threeDays: Boolean(req.body.notifications?.threeDays),
-        oneDay: Boolean(req.body.notifications?.oneDay)
-      }
-    });
-
+    const wedding = new Wedding(req.body);
     const savedWedding = await wedding.save();
-    console.log('Wedding saved successfully:', savedWedding);
     res.status(201).json(savedWedding);
   } catch (error) {
     console.error('Error creating wedding:', error);
