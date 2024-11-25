@@ -83,6 +83,11 @@ app.delete('/api/weddings/:id', async (req: Request, res: Response) => {
   }
 });
 
+// Health check endpoint
+app.get('/api/health', (req: Request, res: Response) => {
+  res.json({ status: 'ok' });
+});
+
 // Serve static files and handle client-side routing
 app.get('*', (req: Request, res: Response) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));

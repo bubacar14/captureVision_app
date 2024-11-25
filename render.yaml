@@ -2,13 +2,17 @@ services:
   - type: web
     name: wedding-planner
     env: node
-    buildCommand: npm install
+    buildCommand: npm install && npm run build && npm run build:server
     startCommand: npm start
     envVars:
       - key: MONGODB_URI
         sync: false
       - key: PORT
         value: 3000
+      - key: NODE_ENV
+        value: production
+      - key: VITE_API_URL
+        value: https://wedding-planner-app-qlvw.onrender.com
       - key: NODE_VERSION
         value: 18.19.0
-    healthCheckPath: /
+    healthCheckPath: /api/health
