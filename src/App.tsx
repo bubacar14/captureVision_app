@@ -1,15 +1,16 @@
-import { useState } from 'react';
-import Navbar from './components/layout/Navbar';
+import { useState, useEffect } from 'react';
+import { ThemeProvider } from './context/ThemeContext';
+import AccessCodeForm from './components/AccessCodeForm';
 import Dashboard from './components/Dashboard';
 import CalendarView from './components/CalendarView';
 import WeddingDetails from './components/WeddingDetails';
 import NotificationsView from './components/NotificationsView';
-import NewWeddingForm from './components/NewWeddingForm';
 import SettingsView from './components/SettingsView';
-import AccessCodeForm from './components/AccessCodeForm';
-import { ThemeProvider } from './context/ThemeContext';
-import { View, Wedding } from './types';
-import './styles/animations.css';
+import NewWeddingForm from './components/NewWeddingForm';
+import Navbar from './components/Navbar';
+import { Wedding } from './types';
+
+type View = 'dashboard' | 'calendar' | 'details' | 'notifications' | 'settings' | 'newWedding';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -17,6 +18,26 @@ function App() {
   const [selectedWedding, setSelectedWedding] = useState<Wedding | null>(null);
   const [weddings, setWeddings] = useState<Wedding[]>([]);
   const [isNewWeddingModalOpen, setIsNewWeddingModalOpen] = useState(false);
+
+  // Charger les mariages depuis l'API
+  useEffect(() => {
+    const fetchWeddings = async () => {
+      try {
+        const apiUrl = import.meta.env.PROD 
+          ? 'https://wedding-planner-app-qlvw.onrender.com/api/weddings'
+          : 'http://localhost:3001/api/weddings';
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        setWeddings(data);
+      } catch (error) {
+        console.error('Error fetching weddings:', error);
+      }
+    };
+
+    if (isAuthenticated) {
+      fetchWeddings();
+    }
+  }, [isAuthenticated]);
 
   if (!isAuthenticated) {
     return (
@@ -26,13 +47,29 @@ function App() {
     );
   }
 
-  const handleAddWedding = (weddingData: Omit<Wedding, 'id'>) => {
-    const newWedding: Wedding = {
-      ...weddingData,
-      id: (weddings.length + 1).toString(),
-    };
-    setWeddings([...weddings, newWedding]);
-    setIsNewWeddingModalOpen(false);
+  const handleAddWedding = async (weddingData: Omit<Wedding, 'id'>) => {
+    try {
+      const apiUrl = import.meta.env.PROD 
+        ? 'https://wedding-planner-app-qlvw.onrender.com/api/weddings'
+        : 'http://localhost:3001/api/weddings';
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(weddingData),
+      });
+      
+      if (response.ok) {
+        const newWedding = await response.json();
+        setWeddings(prevWeddings => [...prevWeddings, newWedding]);
+        setIsNewWeddingModalOpen(false);
+      } else {
+        console.error('Error adding wedding:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error adding wedding:', error);
+    }
   };
 
   const handleWeddingSelect = (wedding: Wedding) => {
