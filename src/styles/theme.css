@@ -1,0 +1,16 @@
+:root {
+  --color-dark-primary: #101D25;    /* Dark background */
+  --color-dark-secondary: #232D36;  /* Secondary dark */
+  --color-accent: #00B09C;         /* Accent teal */
+  --color-text: #9FA2A7;          /* Text gray */
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-dark-primary text-gray-text;
+  }
+}
