@@ -7,7 +7,7 @@ import WeddingDetails from './components/WeddingDetails';
 import NotificationsView from './components/NotificationsView';
 import SettingsView from './components/SettingsView';
 import NewWeddingForm from './components/NewWeddingForm';
-import Navbar from './components/Navbar';
+import Navbar from './components/layout/Navbar';
 import { Wedding } from './types';
 
 type View = 'dashboard' | 'calendar' | 'details' | 'notifications' | 'settings' | 'newWedding';
