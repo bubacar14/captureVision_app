@@ -18,7 +18,6 @@ const PORT = process.env.PORT || 3000;
 app.use(compression());
 app.use(cors());
 app.use(express.json());
-app.use(express.static(join(__dirname, 'dist')));
 
 // MongoDB Connection
 const uri = process.env.MONGODB_URI;
@@ -39,7 +38,6 @@ const db = client.db('wedding-planner');
 const weddings = db.collection('weddings');
 
 // API Routes
-// Get all weddings
 app.get('/api/weddings', async (req, res) => {
   try {
     const result = await weddings.find().sort({ date: 1 }).toArray();
@@ -49,7 +47,6 @@ app.get('/api/weddings', async (req, res) => {
   }
 });
 
-// Create a new wedding
 app.post('/api/weddings', async (req, res) => {
   try {
     const wedding = req.body;
@@ -60,7 +57,6 @@ app.post('/api/weddings', async (req, res) => {
   }
 });
 
-// Update a wedding
 app.put('/api/weddings/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -79,7 +75,6 @@ app.put('/api/weddings/:id', async (req, res) => {
   }
 });
 
-// Delete a wedding
 app.delete('/api/weddings/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -92,6 +87,9 @@ app.delete('/api/weddings/:id', async (req, res) => {
     res.status(400).json({ message: 'Error deleting wedding', error });
   }
 });
+
+// Serve static files from the dist directory
+app.use(express.static('dist'));
 
 // Handle client-side routing
 app.get('*', (req, res) => {

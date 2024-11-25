@@ -10,7 +10,8 @@
     "start:server": "node dist/server.js",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview --host 0.0.0.0 --port $PORT",
-    "start": "node server.js"
+    "start": "node server.js",
+    "postinstall": "npm run build && npm run build:server"
   },
   "dependencies": {
     "compression": "^1.7.4",

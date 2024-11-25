@@ -2,11 +2,13 @@ services:
   - type: web
     name: wedding-planner
     env: node
-    buildCommand: npm install && npm run build
-    startCommand: node server.js
+    buildCommand: npm install
+    startCommand: npm start
     envVars:
       - key: MONGODB_URI
         sync: false
       - key: PORT
         value: 3000
+      - key: NODE_VERSION
+        value: 18.19.0
     healthCheckPath: /
