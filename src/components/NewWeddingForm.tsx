@@ -30,6 +30,7 @@ interface FormErrors {
   phoneNumber?: string;
   guestCount?: string;
   notes?: string;
+  general?: string;
 }
 
 const initialFormData: FormData = {
@@ -130,15 +131,23 @@ export default function NewEventForm({ isOpen, onSubmit, onCancel }: NewEventFor
         // Le formulaire sera fermé par le parent après succès
       } catch (error) {
         console.error('Error submitting form:', error);
-        if (error instanceof Error) {
-          try {
-            const errorData = JSON.parse(error.message);
-            setFormErrors(errorData.errors || { general: error.message });
-          } catch {
-            setFormErrors({ general: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue';
+        
+        try {
+          const errorData = JSON.parse(errorMessage);
+          if (errorData.errors) {
+            setFormErrors(errorData.errors);
+          } else {
+            setFormErrors({ general: errorData.message || errorMessage });
           }
-        } else {
-          setFormErrors({ general: 'Une erreur est survenue lors de l\'enregistrement' });
+        } catch {
+          setFormErrors({ general: errorMessage });
+        }
+        
+        // Afficher l'erreur en haut du formulaire
+        const errorElement = document.querySelector('.error-message');
+        if (errorElement) {
+          errorElement.scrollIntoView({ behavior: 'smooth' });
         }
       }
     } else {
@@ -180,6 +189,14 @@ export default function NewEventForm({ isOpen, onSubmit, onCancel }: NewEventFor
   return (
     <Modal isOpen={isOpen} onClose={onCancel} title={fr.wedding.form.mainInfo}>
       <form onSubmit={handleSubmit} className="space-y-8 px-6 py-4">
+        {formErrors.general && (
+          <div className="error-message bg-red-500/10 border border-red-500/50 rounded-xl p-4 mb-6">
+            <p className="text-red-500 text-sm flex items-center">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              {formErrors.general}
+            </p>
+          </div>
+        )}
         <div className="grid md:grid-cols-2 gap-8">
           {/* Section Principale */}
           <div className="md:col-span-2 bg-gradient-to-br from-[#101D25]/80 to-[#101D25]/60 p-6 rounded-2xl border border-[#232D36]/50 backdrop-blur-sm space-y-6 shadow-xl">

@@ -54,20 +54,26 @@ function App() {
         ? 'https://wedding-planner-app-qlvw.onrender.com/api/weddings'
         : 'http://localhost:3000/api/weddings';
 
+      console.log('Sending request to:', apiUrl);
+      
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify(weddingData)
       });
 
       const responseData = await response.text();
+      console.log('Server response:', responseData);
+      
       let jsonData;
       try {
         jsonData = JSON.parse(responseData);
-      } catch {
-        throw new Error(responseData);
+      } catch (e) {
+        console.error('Error parsing response:', e);
+        throw new Error('Le serveur n\'est pas accessible. Veuillez vérifier votre connexion.');
       }
       
       if (!response.ok) {
@@ -79,6 +85,9 @@ function App() {
       setIsNewWeddingModalOpen(false);
     } catch (error) {
       console.error('Error adding wedding:', error);
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        throw new Error('Le serveur n\'est pas accessible. Veuillez vérifier que le serveur est démarré.');
+      }
       throw error;
     }
   };
