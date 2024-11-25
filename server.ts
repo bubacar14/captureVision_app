@@ -47,25 +47,47 @@ app.post('/api/weddings', async (req: Request, res: Response) => {
   try {
     console.log('Received wedding data:', req.body);
     
-    const wedding = new Wedding(req.body);
-    const validationError = wedding.validateSync();
-    
-    if (validationError) {
-      console.error('Validation error:', validationError);
+    if (!req.body.clientName || !req.body.date || !req.body.venue || !req.body.phoneNumber) {
       return res.status(400).json({ 
-        message: 'Validation error', 
-        errors: validationError.errors 
+        message: 'Missing required fields',
+        errors: {
+          clientName: !req.body.clientName ? 'Client name is required' : null,
+          date: !req.body.date ? 'Date is required' : null,
+          venue: !req.body.venue ? 'Venue is required' : null,
+          phoneNumber: !req.body.phoneNumber ? 'Phone number is required' : null
+        }
       });
     }
-    
+
+    // Ensure date is valid
+    const date = new Date(req.body.date);
+    if (isNaN(date.getTime())) {
+      return res.status(400).json({ 
+        message: 'Invalid date format',
+        errors: { date: 'Invalid date format' }
+      });
+    }
+
+    // Create and save the wedding
+    const wedding = new Wedding({
+      ...req.body,
+      date: date,
+      guestCount: parseInt(req.body.guestCount) || 0,
+      notifications: {
+        oneWeek: Boolean(req.body.notifications?.oneWeek),
+        threeDays: Boolean(req.body.notifications?.threeDays),
+        oneDay: Boolean(req.body.notifications?.oneDay)
+      }
+    });
+
     const savedWedding = await wedding.save();
     console.log('Wedding saved successfully:', savedWedding);
     res.status(201).json(savedWedding);
   } catch (error) {
     console.error('Error creating wedding:', error);
-    res.status(400).json({ 
+    res.status(500).json({ 
       message: 'Error creating wedding', 
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });

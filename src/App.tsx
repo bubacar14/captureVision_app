@@ -59,23 +59,27 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(weddingData),
-        credentials: 'include'
+        body: JSON.stringify(weddingData)
       });
+
+      const responseData = await response.text();
+      let jsonData;
+      try {
+        jsonData = JSON.parse(responseData);
+      } catch {
+        throw new Error(responseData);
+      }
       
       if (!response.ok) {
-        const errorData = await response.text();
-        console.error('Server error:', errorData);
-        throw new Error(errorData);
+        throw new Error(JSON.stringify(jsonData));
       }
 
-      const newWedding = await response.json();
-      console.log('Wedding added successfully:', newWedding);
-      setWeddings(prevWeddings => [...prevWeddings, newWedding]);
+      console.log('Wedding added successfully:', jsonData);
+      setWeddings(prevWeddings => [...prevWeddings, jsonData]);
       setIsNewWeddingModalOpen(false);
     } catch (error) {
       console.error('Error adding wedding:', error);
-      alert('Erreur lors de l\'ajout du mariage. Veuillez réessayer.');
+      throw error;
     }
   };
 

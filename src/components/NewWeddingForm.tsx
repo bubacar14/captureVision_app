@@ -110,35 +110,36 @@ export default function NewEventForm({ isOpen, onSubmit, onCancel }: NewEventFor
     const newErrors = validateForm();
     if (Object.keys(newErrors).length === 0) {
       try {
-        // Format the date correctly
-        const dateObj = new Date(formData.date);
-        if (isNaN(dateObj.getTime())) {
-          throw new Error('Invalid date');
-        }
-
-        const eventData = {
+        // Prepare the data
+        const weddingData = {
           clientName: formData.clientName.trim(),
-          date: dateObj.toISOString(),
+          date: new Date(formData.date).toISOString(),
           venue: formData.venue.trim(),
           phoneNumber: formData.phoneNumber.trim(),
           notes: formData.notes?.trim() || '',
-          guestCount: parseInt(formData.guestCount.toString()),
+          guestCount: Math.max(0, parseInt(formData.guestCount.toString()) || 0),
           notifications: {
-            oneWeek: formData.oneWeek,
-            threeDays: formData.threeDays,
-            oneDay: formData.oneDay
+            oneWeek: Boolean(formData.oneWeek),
+            threeDays: Boolean(formData.threeDays),
+            oneDay: Boolean(formData.oneDay)
           }
         };
 
-        console.log('Submitting event data:', eventData);
-        await onSubmit(eventData);
-        console.log('Event submitted successfully');
+        console.log('Submitting wedding data:', weddingData);
+        await onSubmit(weddingData);
+        // Le formulaire sera fermé par le parent après succès
       } catch (error) {
         console.error('Error submitting form:', error);
-        setFormErrors({
-          ...newErrors,
-          date: error instanceof Error ? error.message : 'Error submitting form'
-        });
+        if (error instanceof Error) {
+          try {
+            const errorData = JSON.parse(error.message);
+            setFormErrors(errorData.errors || { general: error.message });
+          } catch {
+            setFormErrors({ general: error.message });
+          }
+        } else {
+          setFormErrors({ general: 'Une erreur est survenue lors de l\'enregistrement' });
+        }
       }
     } else {
       console.log('Form validation errors:', newErrors);
