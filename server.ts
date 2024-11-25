@@ -14,10 +14,7 @@ const __dirname = path.dirname(__filename);
 const app: Express = express();
 
 // Middleware
-app.use(cors({
-  origin: ['http://localhost:5173', 'https://wedding-planner-app-qlvw.onrender.com'],
-  credentials: true
-}));
+app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 
@@ -48,11 +45,28 @@ app.get('/api/weddings', async (req: Request, res: Response) => {
 // Create a new wedding
 app.post('/api/weddings', async (req: Request, res: Response) => {
   try {
+    console.log('Received wedding data:', req.body);
+    
     const wedding = new Wedding(req.body);
-    await wedding.save();
-    res.status(201).json(wedding);
+    const validationError = wedding.validateSync();
+    
+    if (validationError) {
+      console.error('Validation error:', validationError);
+      return res.status(400).json({ 
+        message: 'Validation error', 
+        errors: validationError.errors 
+      });
+    }
+    
+    const savedWedding = await wedding.save();
+    console.log('Wedding saved successfully:', savedWedding);
+    res.status(201).json(savedWedding);
   } catch (error) {
-    res.status(400).json({ message: 'Error creating wedding', error });
+    console.error('Error creating wedding:', error);
+    res.status(400).json({ 
+      message: 'Error creating wedding', 
+      error: error instanceof Error ? error.message : String(error)
+    });
   }
 });
 
