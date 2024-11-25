@@ -103,30 +103,42 @@ export default function NewEventForm({ isOpen, onSubmit, onCancel }: NewEventFor
     return newErrors;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted with data:', formData);
+    
     const newErrors = validateForm();
-
     if (Object.keys(newErrors).length === 0) {
       try {
+        // Format the date correctly
+        const dateObj = new Date(formData.date);
+        if (isNaN(dateObj.getTime())) {
+          throw new Error('Invalid date');
+        }
+
         const eventData = {
           clientName: formData.clientName.trim(),
-          date: new Date(formData.date).toISOString(),
+          date: dateObj.toISOString(),
           venue: formData.venue.trim(),
           phoneNumber: formData.phoneNumber.trim(),
-          notes: formData.notes.trim() || '', 
-          guestCount: Number(formData.guestCount),
+          notes: formData.notes?.trim() || '',
+          guestCount: parseInt(formData.guestCount.toString()),
           notifications: {
-            oneWeek: Boolean(formData.oneWeek),
-            threeDays: Boolean(formData.threeDays),
-            oneDay: Boolean(formData.oneDay)
+            oneWeek: formData.oneWeek,
+            threeDays: formData.threeDays,
+            oneDay: formData.oneDay
           }
         };
-        console.log('Submitting form data:', eventData);
-        onSubmit(eventData);
+
+        console.log('Submitting event data:', eventData);
+        await onSubmit(eventData);
+        console.log('Event submitted successfully');
       } catch (error) {
-        console.error('Error preparing form data:', error);
-        setFormErrors({ ...newErrors, date: 'Invalid date format' });
+        console.error('Error submitting form:', error);
+        setFormErrors({
+          ...newErrors,
+          date: error instanceof Error ? error.message : 'Error submitting form'
+        });
       }
     } else {
       console.log('Form validation errors:', newErrors);

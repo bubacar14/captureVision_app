@@ -48,27 +48,34 @@ function App() {
   }
 
   const handleAddWedding = async (weddingData: Omit<Wedding, 'id'>) => {
+    console.log('Adding new wedding:', weddingData);
     try {
       const apiUrl = import.meta.env.PROD 
         ? 'https://wedding-planner-app-qlvw.onrender.com/api/weddings'
         : 'http://localhost:3000/api/weddings';
+
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(weddingData),
+        credentials: 'include'
       });
       
-      if (response.ok) {
-        const newWedding = await response.json();
-        setWeddings(prevWeddings => [...prevWeddings, newWedding]);
-        setIsNewWeddingModalOpen(false);
-      } else {
-        console.error('Error adding wedding:', await response.text());
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Server error:', errorData);
+        throw new Error(errorData);
       }
+
+      const newWedding = await response.json();
+      console.log('Wedding added successfully:', newWedding);
+      setWeddings(prevWeddings => [...prevWeddings, newWedding]);
+      setIsNewWeddingModalOpen(false);
     } catch (error) {
       console.error('Error adding wedding:', error);
+      alert('Erreur lors de l\'ajout du mariage. Veuillez réessayer.');
     }
   };
 
