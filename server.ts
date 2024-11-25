@@ -15,20 +15,10 @@ const app: Express = express();
 
 // CORS configuration
 const corsOptions = {
-  origin: function(origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) {
-    // En développement ou pour les requêtes sans origine (comme Postman)
-    if (!origin || process.env.NODE_ENV === 'development') {
-      callback(null, true);
-      return;
-    }
-    
-    // En production, accepter toutes les origines
-    callback(null, true);
-  },
+  origin: ['https://capturevision-app.onrender.com', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
   credentials: true,
-  preflightContinue: true,
   optionsSuccessStatus: 204
 };
 
