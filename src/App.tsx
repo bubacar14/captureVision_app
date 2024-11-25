@@ -27,6 +27,8 @@ function App() {
       
     async fetch(endpoint: string, options: RequestInit = {}) {
       const url = `${this.baseUrl}${endpoint}`;
+      console.log('Making API request to:', url);
+      
       const defaultOptions: RequestInit = {
         headers: {
           'Content-Type': 'application/json',
@@ -47,29 +49,38 @@ function App() {
         });
 
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error('API Error:', {
-            url,
+          console.error('API Error Response:', {
             status: response.status,
             statusText: response.statusText,
-            error: errorText
+            url
           });
+
+          if (response.status === 0 || !response.status) {
+            throw new Error('Le serveur n\'est pas accessible. Veuillez réessayer plus tard.');
+          }
+
+          const errorText = await response.text();
+          console.error('Error details:', errorText);
+          
           throw new Error(
-            response.status === 0 
-              ? 'Le serveur n\'est pas accessible. Veuillez vérifier votre connexion.' 
-              : `Erreur ${response.status}: ${response.statusText}`
+            `Erreur ${response.status}: ${response.statusText || 'Erreur inconnue'}`
           );
         }
 
-        return response.json();
+        const data = await response.json();
+        console.log('API Response:', data);
+        return data;
       } catch (error) {
-        console.error('Network Error:', error);
+        console.error('API Request failed:', error);
+        
         if (!navigator.onLine) {
           throw new Error('Pas de connexion Internet. Veuillez vérifier votre connexion.');
         }
+        
         if (error instanceof TypeError && error.message === 'Failed to fetch') {
           throw new Error('Le serveur n\'est pas accessible. Veuillez réessayer plus tard.');
         }
+
         throw error;
       }
     }
