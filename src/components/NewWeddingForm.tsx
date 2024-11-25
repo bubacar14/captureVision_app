@@ -108,21 +108,28 @@ export default function NewEventForm({ isOpen, onSubmit, onCancel }: NewEventFor
     const newErrors = validateForm();
 
     if (Object.keys(newErrors).length === 0) {
-      const eventData = {
-        clientName: formData.clientName,
-        date: new Date(formData.date),
-        venue: formData.venue,
-        phoneNumber: formData.phoneNumber,
-        notes: formData.notes || '', 
-        guestCount: formData.guestCount,
-        notifications: {
-          oneWeek: formData.oneWeek,
-          threeDays: formData.threeDays,
-          oneDay: formData.oneDay
-        }
-      };
-      onSubmit(eventData);
+      try {
+        const eventData = {
+          clientName: formData.clientName.trim(),
+          date: new Date(formData.date).toISOString(),
+          venue: formData.venue.trim(),
+          phoneNumber: formData.phoneNumber.trim(),
+          notes: formData.notes.trim() || '', 
+          guestCount: Number(formData.guestCount),
+          notifications: {
+            oneWeek: Boolean(formData.oneWeek),
+            threeDays: Boolean(formData.threeDays),
+            oneDay: Boolean(formData.oneDay)
+          }
+        };
+        console.log('Submitting form data:', eventData);
+        onSubmit(eventData);
+      } catch (error) {
+        console.error('Error preparing form data:', error);
+        setFormErrors({ ...newErrors, date: 'Invalid date format' });
+      }
     } else {
+      console.log('Form validation errors:', newErrors);
       setFormErrors(newErrors);
     }
   };
