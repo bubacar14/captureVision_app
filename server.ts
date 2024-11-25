@@ -13,17 +13,31 @@ const __dirname = path.dirname(__filename);
 
 const app: Express = express();
 
-// Middleware
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'https://capturevision-app.onrender.com',
-    'https://wedding-planner-app-qlvw.onrender.com'
-  ],
+// CORS configuration
+const corsOptions = {
+  origin: function(origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) {
+    // En développement ou pour les requêtes sans origine (comme Postman)
+    if (!origin || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+      return;
+    }
+    
+    // En production, accepter toutes les origines
+    callback(null, true);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Accept'],
-  credentials: true
-}));
+  allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
+  credentials: true,
+  preflightContinue: true,
+  optionsSuccessStatus: 204
+};
+
+// Middleware
+app.use(cors(corsOptions));
+
+// Enable pre-flight requests for all routes
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 

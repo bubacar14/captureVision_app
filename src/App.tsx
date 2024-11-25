@@ -19,28 +19,53 @@ function App() {
   const [weddings, setWeddings] = useState<Wedding[]>([]);
   const [isNewWeddingModalOpen, setIsNewWeddingModalOpen] = useState(false);
 
+  // Fonction utilitaire pour les requêtes API
+  const api = {
+    baseUrl: import.meta.env.PROD 
+      ? 'https://wedding-planner-app-qlvw.onrender.com/api'
+      : 'http://localhost:3000/api',
+      
+    async fetch(endpoint: string, options: RequestInit = {}) {
+      const url = `${this.baseUrl}${endpoint}`;
+      const defaultOptions: RequestInit = {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        mode: 'cors',
+        credentials: 'include'
+      };
+
+      const response = await fetch(url, {
+        ...defaultOptions,
+        ...options,
+        headers: {
+          ...defaultOptions.headers,
+          ...options.headers
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', {
+          url,
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        throw new Error(errorText);
+      }
+
+      return response.json();
+    }
+  };
+
   // Charger les mariages depuis l'API
   useEffect(() => {
     const fetchWeddings = async () => {
       try {
-        const apiUrl = import.meta.env.PROD 
-          ? 'https://wedding-planner-app-qlvw.onrender.com/api/weddings'
-          : 'http://localhost:3000/api/weddings';
-
-        console.log('Fetching weddings from:', apiUrl);
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json'
-          },
-          mode: 'cors'
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
+        console.log('Fetching weddings...');
+        const data = await api.fetch('/weddings');
         console.log('Weddings fetched successfully:', data);
         setWeddings(data);
       } catch (error) {
@@ -56,29 +81,11 @@ function App() {
   const handleAddWedding = async (weddingData: Omit<Wedding, 'id'>) => {
     console.log('Adding new wedding:', weddingData);
     try {
-      const apiUrl = import.meta.env.PROD 
-        ? 'https://wedding-planner-app-qlvw.onrender.com/api/weddings'
-        : 'http://localhost:3000/api/weddings';
-
-      console.log('Sending request to:', apiUrl);
-      
-      const response = await fetch(apiUrl, {
+      const newWedding = await api.fetch('/weddings', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        mode: 'cors',
         body: JSON.stringify(weddingData)
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Server error response:', errorText);
-        throw new Error(errorText);
-      }
-
-      const newWedding = await response.json();
+      
       console.log('Wedding added successfully:', newWedding);
       setWeddings(prevWeddings => [...prevWeddings, newWedding]);
       setIsNewWeddingModalOpen(false);
