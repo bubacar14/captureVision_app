@@ -14,7 +14,16 @@ const __dirname = path.dirname(__filename);
 const app: Express = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'https://capturevision-app.onrender.com',
+    'https://wedding-planner-app-qlvw.onrender.com'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Accept'],
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 

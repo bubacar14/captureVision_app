@@ -26,8 +26,22 @@ function App() {
         const apiUrl = import.meta.env.PROD 
           ? 'https://wedding-planner-app-qlvw.onrender.com/api/weddings'
           : 'http://localhost:3000/api/weddings';
-        const response = await fetch(apiUrl);
+
+        console.log('Fetching weddings from:', apiUrl);
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          },
+          mode: 'cors'
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
+        console.log('Weddings fetched successfully:', data);
         setWeddings(data);
       } catch (error) {
         console.error('Error fetching weddings:', error);
@@ -38,14 +52,6 @@ function App() {
       fetchWeddings();
     }
   }, [isAuthenticated]);
-
-  if (!isAuthenticated) {
-    return (
-      <ThemeProvider>
-        <AccessCodeForm onSuccess={() => setIsAuthenticated(true)} />
-      </ThemeProvider>
-    );
-  }
 
   const handleAddWedding = async (weddingData: Omit<Wedding, 'id'>) => {
     console.log('Adding new wedding:', weddingData);
@@ -62,31 +68,24 @@ function App() {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
+        mode: 'cors',
         body: JSON.stringify(weddingData)
       });
 
-      const responseData = await response.text();
-      console.log('Server response:', responseData);
-      
-      let jsonData;
-      try {
-        jsonData = JSON.parse(responseData);
-      } catch (e) {
-        console.error('Error parsing response:', e);
-        throw new Error('Le serveur n\'est pas accessible. Veuillez vérifier votre connexion.');
-      }
-      
       if (!response.ok) {
-        throw new Error(JSON.stringify(jsonData));
+        const errorText = await response.text();
+        console.error('Server error response:', errorText);
+        throw new Error(errorText);
       }
 
-      console.log('Wedding added successfully:', jsonData);
-      setWeddings(prevWeddings => [...prevWeddings, jsonData]);
+      const newWedding = await response.json();
+      console.log('Wedding added successfully:', newWedding);
+      setWeddings(prevWeddings => [...prevWeddings, newWedding]);
       setIsNewWeddingModalOpen(false);
     } catch (error) {
       console.error('Error adding wedding:', error);
       if (error instanceof TypeError && error.message === 'Failed to fetch') {
-        throw new Error('Le serveur n\'est pas accessible. Veuillez vérifier que le serveur est démarré.');
+        throw new Error('Le serveur n\'est pas accessible. Veuillez vérifier votre connexion.');
       }
       throw error;
     }
