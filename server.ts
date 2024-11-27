@@ -30,7 +30,7 @@ app.use('/api/', limiter);
 
 // CORS configuration with specific origins
 const corsOptions = {
-  origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000'],
+  origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:4173'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
   credentials: true,
@@ -56,104 +56,47 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error(`Error ${req.method} ${req.path}:`, err.stack);
-  res.status(500).json({
-    error: 'Une erreur est survenue sur le serveur',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Erreur interne'
-  });
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
 });
 
-// Connect to MongoDB
-console.log('Attempting to connect to MongoDB...');
-console.log('MongoDB URI:', process.env.MONGODB_URI?.substring(0, 20) + '...');
-
-const mongoUri = process.env.MONGODB_URI;
-if (!mongoUri) {
-  throw new Error('MONGODB_URI n\'est pas défini dans les variables d\'environnement');
-}
-
-mongoose.connect(mongoUri, {
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
-  connectTimeoutMS: 10000,
-  maxPoolSize: 10,
-  minPoolSize: 2,
-  retryWrites: true,
-  retryReads: true,
-}).then(() => {
-  console.log('Successfully connected to MongoDB.');
-}).catch((error) => {
-  console.error('Error connecting to MongoDB:', error);
-  process.exit(1);
-});
-
-// Add MongoDB connection event handlers
-mongoose.connection.on('error', (err) => {
-  console.error('MongoDB connection error:', err);
-});
-
-mongoose.connection.on('disconnected', () => {
-  console.warn('MongoDB disconnected. Attempting to reconnect...');
-});
-
-mongoose.connection.on('reconnected', () => {
-  console.log('MongoDB reconnected successfully');
-});
-
-// Start server function
-const startServer = () => {
-  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-  
-  const server = app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-    console.log('Environment:', process.env.NODE_ENV);
+const startServer = async () => {
+  try {
+    const port = Number(process.env.PORT) || 3000;
+    
+    // Connect to MongoDB
+    await mongoose.connect(process.env.MONGODB_URI as string);
+    console.log('Connected to MongoDB');
     console.log('CORS origins:', corsOptions.origin);
-  }).on('error', (error: NodeJS.ErrnoException) => {
-    if (error.code === 'EADDRINUSE') {
-      console.error(`Port ${port} is already in use`);
-      process.exit(1);
-    } else {
-      console.error('Server error:', error);
-      process.exit(1);
-    }
-  });
+    console.log('Server environment:', process.env.NODE_ENV);
+    console.log('API URL:', process.env.VITE_API_URL);
 
-  // Handle server errors
-  server.on('error', (error: NodeJS.ErrnoException) => {
-    if (error.syscall !== 'listen') {
-      throw error;
-    }
-
-    const bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
-
-    switch (error.code) {
-      case 'EACCES':
-        console.error(bind + ' requires elevated privileges');
-        process.exit(1);
-        break;
-      case 'EADDRINUSE':
-        console.error(bind + ' is already in use');
-        process.exit(1);
-        break;
-      default:
-        throw error;
-    }
-  });
+    app.listen(port, '0.0.0.0', () => {
+      console.log(`Server is running on port ${port}`);
+      console.log(`API URL: ${process.env.VITE_API_URL}`);
+    });
+  } catch (error) {
+    console.error('Error starting server:', error);
+    process.exit(1);
+  }
 };
 
-mongoose.connection.once('connected', () => {
-  startServer();
+// Health check endpoint
+app.get('/health', (req: Request, res: Response) => {
+  res.status(200).json({ status: 'OK' });
 });
 
-// Routes
-// Get all weddings
-app.get('/api/weddings', async (_req: Request, res: Response) => {
+// API Routes
+app.get('/api/weddings', async (req: Request, res: Response) => {
   try {
+    console.log('Fetching weddings from database...');
     const weddings = await Wedding.find().sort({ date: 1 });
-    return res.json(weddings);
+    console.log('Weddings found:', weddings);
+    console.log('Number of weddings:', weddings.length);
+    res.json(weddings);
   } catch (error) {
     console.error('Error fetching weddings:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Failed to fetch weddings' });
   }
 });
 
@@ -218,11 +161,6 @@ app.delete('/api/weddings/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
 // Serve static files and handle client-side routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
@@ -253,3 +191,6 @@ process.on('SIGINT', async () => {
     process.exit(1);
   }
 });
+
+// Start the server
+startServer();

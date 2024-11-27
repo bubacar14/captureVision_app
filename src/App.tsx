@@ -24,41 +24,52 @@ function App() {
     console.log('Authentication status:', isAuthenticated);
     console.log('Current API URL:', import.meta.env.VITE_API_URL);
     
+    // Toujours charger les mariages au démarrage
     if (isAuthenticated) {
       console.log('User is authenticated, fetching weddings...');
       fetchWeddings();
+    } else {
+      console.log('User is not authenticated yet');
     }
   }, [isAuthenticated]);
 
   const fetchWeddings = async () => {
     try {
       console.log('Fetching weddings...');
+      console.log('API URL:', import.meta.env.VITE_API_URL);
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/weddings`);
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
       if (!response.ok) {
         throw new Error(`Failed to fetch weddings: ${response.status}`);
       }
       const data = await response.json();
       console.log('Weddings fetched:', data);
-      // Vérifier si data est un tableau ou s'il contient une propriété weddings
-      const weddingsArray = Array.isArray(data) ? data : data.weddings;
-      setWeddings(weddingsArray || []);
+      console.log('Is data an array?', Array.isArray(data));
+      setWeddings(Array.isArray(data) ? data : []);
+      console.log('Weddings state updated:', Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching weddings:', error);
-      // Initialiser avec un tableau vide en cas d'erreur
       setWeddings([]);
     }
   };
 
   if (!isAuthenticated) {
+    console.log('Rendering login form...');
     return (
       <ThemeProvider>
         <AccessCodeForm onSuccess={() => {
           console.log('Authentication successful');
           setIsAuthenticated(true);
+          console.log('Authentication state updated, should trigger useEffect');
         }} />
       </ThemeProvider>
     );
   }
+
+  console.log('Rendering authenticated content...');
+  console.log('Current view:', view);
+  console.log('Number of weddings:', weddings.length);
 
   const renderContent = () => {
     console.log('Rendering content, current view:', view);
