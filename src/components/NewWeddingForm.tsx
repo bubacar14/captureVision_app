@@ -1,418 +1,285 @@
-import React, { useState, useEffect } from 'react';
-import Modal from './common/Modal';
-import { Event } from '../types';
-import { fr } from '../i18n/fr';
-import classNames from 'classnames';
-import { Calendar, Phone, FileText, Bell, AlertCircle } from 'react-feather';
+import React, { useState } from 'react';
+import { Wedding } from '../types';
+import { X, Phone } from 'lucide-react';
 
-interface NewEventFormProps {
-  isOpen: boolean;
-  onSubmit: (event: Omit<Event, 'id'>) => void;
-  onCancel: () => void;
+interface NewWeddingFormProps {
+  onClose: () => void;
+  onSave: (wedding: Omit<Wedding, 'id'>) => void;
 }
 
-interface FormData {
-  clientName: string;
-  date: string;
-  venue: string;
-  phoneNumber: string;
-  notes: string;
-  guestCount: number;
-  oneWeek: boolean;
-  threeDays: boolean;
-  oneDay: boolean;
-}
-
-interface FormErrors {
-  clientName?: string;
-  date?: string;
-  venue?: string;
-  phoneNumber?: string;
-  guestCount?: string;
-  notes?: string;
-  general?: string;
-}
-
-const initialFormData: FormData = {
-  clientName: '',
-  date: '',
-  venue: '',
-  phoneNumber: '',
-  notes: '',
-  guestCount: 0,
-  oneWeek: false,
-  threeDays: false,
-  oneDay: false
-};
-
-export default function NewEventForm({ isOpen, onSubmit, onCancel }: NewEventFormProps) {
-  const [formData, setFormData] = useState<FormData>({
+export default function NewWeddingForm({ onClose, onSave }: NewWeddingFormProps) {
+  const [formData, setFormData] = useState({
     clientName: '',
+    partnersName: '',
     date: '',
+    time: '',
     venue: '',
     phoneNumber: '',
+    guestCount: '',
+    budget: '',
     notes: '',
-    guestCount: 0,
-    oneWeek: false,
-    threeDays: false,
-    oneDay: false
+    ceremonyType: 'civil'
   });
-  const [formErrors, setFormErrors] = useState<FormErrors>({});
 
-  useEffect(() => {
-    if (!isOpen) {
-      setFormData(initialFormData);
-      setFormErrors({});
-    }
-  }, [isOpen]);
-
-  const validateForm = () => {
-    const newErrors: FormErrors = {};
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
-
-    if (!formData.clientName.trim()) {
-      newErrors.clientName = fr.wedding.form.errors.clientName;
-    }
-
-    if (!formData.date) {
-      newErrors.date = fr.wedding.form.errors.date;
-    } else {
-      const selectedDate = new Date(formData.date);
-      if (isNaN(selectedDate.getTime()) || selectedDate < currentDate) {
-        newErrors.date = fr.wedding.form.errors.pastDate;
-      }
-    }
-
-    if (!formData.venue.trim()) {
-      newErrors.venue = fr.wedding.form.errors.venue;
-    }
-
-    if (!formData.phoneNumber.trim()) {
-      newErrors.phoneNumber = fr.wedding.form.errors.phoneNumber;
-    } else {
-      const phoneRegex = /^(\+\d{1,3}\s?)?(\d{1,4}[-\s]?){1,4}\d{1,4}$/;
-      if (!phoneRegex.test(formData.phoneNumber.trim())) {
-        newErrors.phoneNumber = fr.wedding.form.errors.invalidPhone;
-      }
-    }
-
-    if (formData.guestCount < 0) {
-      newErrors.guestCount = fr.wedding.form.errors.guestCount;
-    }
-
-    return newErrors;
-  };
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted with data:', formData);
-    
-    const newErrors = validateForm();
-    if (Object.keys(newErrors).length === 0) {
-      try {
-        // Prepare the data
-        const weddingData = {
-          clientName: formData.clientName.trim(),
-          date: new Date(formData.date).toISOString(),
-          venue: formData.venue.trim(),
-          phoneNumber: formData.phoneNumber.trim(),
-          notes: formData.notes?.trim() || '',
-          guestCount: Math.max(0, parseInt(formData.guestCount.toString()) || 0),
-          notifications: {
-            oneWeek: Boolean(formData.oneWeek),
-            threeDays: Boolean(formData.threeDays),
-            oneDay: Boolean(formData.oneDay)
-          }
-        };
+    setError(null);
 
-        console.log('Submitting wedding data:', weddingData);
-        await onSubmit(weddingData);
-        // Le formulaire sera fermé par le parent après succès
-      } catch (error) {
-        console.error('Error submitting form:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue';
-        
-        try {
-          const errorData = JSON.parse(errorMessage);
-          if (errorData.errors) {
-            setFormErrors(errorData.errors);
-          } else {
-            setFormErrors({ general: errorData.message || errorMessage });
-          }
-        } catch {
-          setFormErrors({ general: errorMessage });
-        }
-        
-        // Afficher l'erreur en haut du formulaire
-        const errorElement = document.querySelector('.error-message');
-        if (errorElement) {
-          errorElement.scrollIntoView({ behavior: 'smooth' });
-        }
+    try {
+      // Validation des champs requis
+      if (!formData.clientName || !formData.date || !formData.venue || !formData.phoneNumber || !formData.ceremonyType) {
+        setError('Veuillez remplir tous les champs obligatoires');
+        return;
       }
-    } else {
-      console.log('Form validation errors:', newErrors);
-      setFormErrors(newErrors);
-    }
-  };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-
-    if (type === 'checkbox') {
-      const checkbox = e.target as HTMLInputElement;
-      setFormData(prev => ({ ...prev, [name]: checkbox.checked }));
-    } else if (type === 'number') {
-      setFormData(prev => ({ ...prev, [name]: parseInt(value) || 0 }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-
-      setFormErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name as keyof FormErrors];
-        return newErrors;
-      });
-    }
-  };
-
-  const inputClassName = (fieldName: keyof FormErrors) => {
-    return classNames(
-      'w-full px-3 sm:px-4 py-3 sm:py-3.5 text-sm sm:text-base rounded-xl bg-transparent text-white border transition-all duration-300',
-      'focus:outline-none focus:ring-2 focus:ring-[#00B09C]/20',
-      {
-        'border-[#232D36] focus:border-[#00B09C]/50': !formErrors[fieldName],
-        'border-red-500 focus:border-red-500 focus:ring-red-500/20': formErrors[fieldName],
+      // Validation de la longueur des champs
+      if (formData.clientName.length < 2 || formData.clientName.length > 100) {
+        setError('Le nom des mariés doit contenir entre 2 et 100 caractères');
+        return;
       }
-    );
+
+      if (formData.venue.length < 2 || formData.venue.length > 200) {
+        setError('Le lieu doit contenir entre 2 et 200 caractères');
+        return;
+      }
+
+      // Validation du nombre d'invités
+      const guestCount = Number(formData.guestCount);
+      if (isNaN(guestCount) || guestCount < 1 || guestCount > 1000) {
+        setError('Le nombre d\'invités doit être compris entre 1 et 1000');
+        return;
+      }
+
+      // Validation du budget
+      const budget = Number(formData.budget);
+      if (isNaN(budget) || budget < 0) {
+        setError('Le budget ne peut pas être négatif');
+        return;
+      }
+
+      const weddingData = {
+        clientName: formData.clientName.trim(),
+        partnersName: formData.partnersName.trim() || formData.clientName.trim(),
+        date: new Date(formData.date + 'T' + (formData.time || '00:00')).toISOString(),
+        venue: formData.venue.trim(),
+        phoneNumber: formData.phoneNumber.trim(),
+        guestCount: guestCount,
+        budget: budget,
+        notes: formData.notes.trim() || '',
+        ceremonyType: formData.ceremonyType,
+        notifications: {
+          oneWeek: true,
+          threeDays: true,
+          oneDay: true
+        }
+      };
+
+      console.log('Préparation des données du mariage:', weddingData);
+      await onSave(weddingData);
+      console.log('Mariage enregistré avec succès');
+      onClose();
+    } catch (error) {
+      console.error('Erreur détaillée:', error);
+      if (error instanceof Error) {
+        // Gestion des messages d'erreur spécifiques
+        if (error.message.includes('validation')) {
+          setError('Erreur de validation: veuillez vérifier les champs du formulaire');
+        } else {
+          setError(error.message);
+        }
+      } else {
+        setError('Une erreur est survenue lors de l\'enregistrement');
+      }
+    }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onCancel} title={fr.wedding.form.mainInfo}>
-      <form onSubmit={handleSubmit} className="space-y-8 px-6 py-4">
-        {formErrors.general && (
-          <div className="error-message bg-red-500/10 border border-red-500/50 rounded-xl p-4 mb-6">
-            <p className="text-red-500 text-sm flex items-center">
-              <AlertCircle className="h-4 w-4 mr-2" />
-              {formErrors.general}
-            </p>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-gray-800 rounded-2xl w-full max-w-lg p-6 shadow-xl">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-semibold text-white">Nouveau Mariage</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-700 rounded-full transition-colors"
+          >
+            <X className="h-6 w-6 text-gray-400" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-4 bg-red-500/10 border border-red-500/50 rounded-lg text-red-500 text-sm">
+            {error}
           </div>
         )}
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Section Principale */}
-          <div className="md:col-span-2 bg-gradient-to-br from-[#101D25]/80 to-[#101D25]/60 p-6 rounded-2xl border border-[#232D36]/50 backdrop-blur-sm space-y-6 shadow-xl">
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="p-2 bg-[#00B09C]/10 rounded-xl">
-                <Calendar className="h-6 w-6 text-[#00B09C]" />
-              </div>
-              <h2 className="text-[#00B09C] text-lg font-semibold">{fr.wedding.form.mainInfo}</h2>
-            </div>
-            
-            <div className="space-y-6">
-              <div className="relative group">
-                <label htmlFor="clientName" className="absolute -top-2.5 left-3 px-2 bg-[#101D25] text-[#9FA2A7] text-sm transition-all duration-200 group-focus-within:text-[#00B09C]">
-                  {fr.wedding.clientName}
-                </label>
-                <input
-                  type="text"
-                  id="clientName"
-                  name="clientName"
-                  value={formData.clientName}
-                  onChange={handleChange}
-                  className={`${inputClassName('clientName')} group-hover:border-[#00B09C]/30 group-focus-within:border-[#00B09C]`}
-                  placeholder={fr.wedding.form.clientNamePlaceholder}
-                />
-                {formErrors.clientName && (
-                  <p className="text-red-400 text-sm mt-2 ml-1 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {formErrors.clientName}
-                  </p>
-                )}
-              </div>
 
-              <div className="relative group">
-                <label htmlFor="date" className="absolute -top-2.5 left-3 px-2 bg-[#101D25] text-[#9FA2A7] text-sm transition-all duration-200 group-focus-within:text-[#00B09C]">
-                  {fr.wedding.date}
-                </label>
-                <input
-                  type="datetime-local"
-                  id="date"
-                  name="date"
-                  value={formData.date}
-                  onChange={handleChange}
-                  className={`${inputClassName('date')} group-hover:border-[#00B09C]/30 group-focus-within:border-[#00B09C]`}
-                />
-                {formErrors.date && (
-                  <p className="text-red-400 text-sm mt-2 ml-1 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {formErrors.date}
-                  </p>
-                )}
-              </div>
-
-              <div className="relative group">
-                <label htmlFor="venue" className="absolute -top-2.5 left-3 px-2 bg-[#101D25] text-[#9FA2A7] text-sm transition-all duration-200 group-focus-within:text-[#00B09C]">
-                  {fr.wedding.venue}
-                </label>
-                <input
-                  type="text"
-                  id="venue"
-                  name="venue"
-                  value={formData.venue}
-                  onChange={handleChange}
-                  className={`${inputClassName('venue')} group-hover:border-[#00B09C]/30 group-focus-within:border-[#00B09C]`}
-                  placeholder={fr.wedding.form.venuePlaceholder}
-                />
-                {formErrors.venue && (
-                  <p className="text-red-400 text-sm mt-2 ml-1 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {formErrors.venue}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Section Contact */}
-          <div className="bg-gradient-to-br from-[#101D25]/80 to-[#101D25]/60 p-6 rounded-2xl border border-[#232D36]/50 backdrop-blur-sm space-y-6 shadow-xl">
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="p-2 bg-[#00B09C]/10 rounded-xl">
-                <Phone className="h-6 w-6 text-[#00B09C]" />
-              </div>
-              <h2 className="text-[#00B09C] text-lg font-semibold">{fr.wedding.form.contact}</h2>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Nom des mariés *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.clientName}
+                onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                placeholder="Nom des mariés"
+              />
             </div>
 
-            <div className="space-y-6">
-              <div className="relative group">
-                <label htmlFor="phoneNumber" className="absolute -top-2.5 left-3 px-2 bg-[#101D25] text-[#9FA2A7] text-sm transition-all duration-200 group-focus-within:text-[#00B09C]">
-                  {fr.wedding.phoneNumber}
-                </label>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Nom des partenaires
+              </label>
+              <input
+                type="text"
+                value={formData.partnersName}
+                onChange={(e) => setFormData({ ...formData, partnersName: e.target.value })}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                placeholder="Nom des partenaires"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Numéro de téléphone *
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Phone className="h-5 w-5 text-gray-400" />
+                </div>
                 <input
                   type="tel"
-                  id="phoneNumber"
-                  name="phoneNumber"
+                  required
                   value={formData.phoneNumber}
-                  onChange={handleChange}
-                  className={`${inputClassName('phoneNumber')} group-hover:border-[#00B09C]/30 group-focus-within:border-[#00B09C]`}
-                  placeholder={fr.wedding.form.phonePlaceholder}
+                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg pl-10 pr-4 py-2 text-white focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  placeholder="Numéro de téléphone"
                 />
-                {formErrors.phoneNumber && (
-                  <p className="text-red-400 text-sm mt-2 ml-1 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {formErrors.phoneNumber}
-                  </p>
-                )}
               </div>
+            </div>
 
-              <div className="relative group">
-                <label htmlFor="guestCount" className="absolute -top-2.5 left-3 px-2 bg-[#101D25] text-[#9FA2A7] text-sm transition-all duration-200 group-focus-within:text-[#00B09C]">
-                  {fr.wedding.guestCount}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Date *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Heure
+                </label>
+                <input
+                  type="time"
+                  value={formData.time}
+                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Lieu *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.venue}
+                onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                placeholder="Lieu du mariage"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Type de cérémonie *
+              </label>
+              <select
+                required
+                value={formData.ceremonyType}
+                onChange={(e) => setFormData({ ...formData, ceremonyType: e.target.value })}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="civil">Civile</option>
+                <option value="religious">Religieuse</option>
+                <option value="both">Les deux</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Nombre d'invités
                 </label>
                 <input
                   type="number"
-                  id="guestCount"
-                  name="guestCount"
+                  required
+                  min="1"
+                  max="1000"
                   value={formData.guestCount}
-                  onChange={handleChange}
-                  min="0"
-                  className={`${inputClassName('guestCount')} group-hover:border-[#00B09C]/30 group-focus-within:border-[#00B09C]`}
+                  onChange={(e) => setFormData({ ...formData, guestCount: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Nombre d'invités"
                 />
-                {formErrors.guestCount && (
-                  <p className="text-red-400 text-sm mt-2 ml-1 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {formErrors.guestCount}
-                  </p>
-                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Budget
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  value={formData.budget}
+                  onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Budget en €"
+                />
               </div>
             </div>
-          </div>
 
-          {/* Section Notes */}
-          <div className="bg-gradient-to-br from-[#101D25]/80 to-[#101D25]/60 p-6 rounded-2xl border border-[#232D36]/50 backdrop-blur-sm space-y-6 shadow-xl">
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="p-2 bg-[#00B09C]/10 rounded-xl">
-                <FileText className="h-6 w-6 text-[#00B09C]" />
-              </div>
-              <h2 className="text-[#00B09C] text-lg font-semibold">{fr.wedding.form.notes}</h2>
-            </div>
-
-            <div className="relative group">
-              <label htmlFor="notes" className="absolute -top-2.5 left-3 px-2 bg-[#101D25] text-[#9FA2A7] text-sm transition-all duration-200 group-focus-within:text-[#00B09C]">
-                {fr.wedding.notes}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Notes
               </label>
               <textarea
-                id="notes"
-                name="notes"
-                value={(formData.notes as string)}
-                onChange={handleChange}
-                rows={4}
-                className={`${inputClassName('notes')} resize-none group-hover:border-[#00B09C]/30 group-focus-within:border-[#00B09C]`}
-                placeholder={fr.wedding.form.notesPlaceholder}
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-teal-500 focus:border-transparent h-24 resize-none"
+                placeholder="Notes additionnelles"
               />
             </div>
           </div>
 
-          {/* Section Notifications */}
-          <div className="bg-gradient-to-br from-[#101D25]/80 to-[#101D25]/60 p-6 rounded-2xl border border-[#232D36]/50 backdrop-blur-sm space-y-6 shadow-xl">
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="p-2 bg-[#00B09C]/10 rounded-xl">
-                <Bell className="h-6 w-6 text-[#00B09C]" />
-              </div>
-              <h2 className="text-[#00B09C] text-lg font-semibold">{fr.wedding.form.notifications}</h2>
-            </div>
-
-            <div className="space-y-4">
-              <label className="flex items-center space-x-3 p-3 rounded-xl border border-[#232D36] hover:border-[#00B09C]/30 transition-colors cursor-pointer group">
-                <input
-                  type="checkbox"
-                  name="oneWeek"
-                  checked={formData.oneWeek}
-                  onChange={handleChange}
-                  className="form-checkbox h-5 w-5 text-[#00B09C] rounded border-[#232D36] focus:ring-[#00B09C] focus:ring-offset-0 bg-transparent"
-                />
-                <span className="text-[#9FA2A7] group-hover:text-white transition-colors">{fr.wedding.form.oneWeek}</span>
-              </label>
-
-              <label className="flex items-center space-x-3 p-3 rounded-xl border border-[#232D36] hover:border-[#00B09C]/30 transition-colors cursor-pointer group">
-                <input
-                  type="checkbox"
-                  name="threeDays"
-                  checked={formData.threeDays}
-                  onChange={handleChange}
-                  className="form-checkbox h-5 w-5 text-[#00B09C] rounded border-[#232D36] focus:ring-[#00B09C] focus:ring-offset-0 bg-transparent"
-                />
-                <span className="text-[#9FA2A7] group-hover:text-white transition-colors">{fr.wedding.form.threeDays}</span>
-              </label>
-
-              <label className="flex items-center space-x-3 p-3 rounded-xl border border-[#232D36] hover:border-[#00B09C]/30 transition-colors cursor-pointer group">
-                <input
-                  type="checkbox"
-                  name="oneDay"
-                  checked={formData.oneDay}
-                  onChange={handleChange}
-                  className="form-checkbox h-5 w-5 text-[#00B09C] rounded border-[#232D36] focus:ring-[#00B09C] focus:ring-offset-0 bg-transparent"
-                />
-                <span className="text-[#9FA2A7] group-hover:text-white transition-colors">{fr.wedding.form.oneDay}</span>
-              </label>
-            </div>
+          <div className="flex justify-end space-x-4 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white bg-gray-700 rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Enregistrer
+            </button>
           </div>
-        </div>
-
-        <div className="flex justify-end space-x-4 pt-4">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-6 py-2.5 rounded-xl border border-[#232D36] text-[#9FA2A7] hover:bg-[#232D36]/50 hover:text-white transition-all duration-300"
-          >
-            {fr.common.cancel}
-          </button>
-          <button
-            type="submit"
-            className="px-6 py-2.5 rounded-xl bg-[#00B09C] text-white hover:bg-[#00B09C]/90 transition-all duration-300 shadow-lg shadow-[#00B09C]/20"
-          >
-            {fr.common.save}
-          </button>
-        </div>
-      </form>
-    </Modal>
+        </form>
+      </div>
+    </div>
   );
 }

@@ -5,12 +5,13 @@ import { View } from '../../types';
 interface NavbarProps {
   currentView: View;
   onViewChange: (view: View) => void;
+  onNewWedding: () => void;
 }
 
-export default function Navbar({ currentView, onViewChange }: NavbarProps) {
-  const NavButton = ({ view, icon: Icon }: { view: View; icon: React.ElementType }) => (
+export default function Navbar({ currentView, onViewChange, onNewWedding }: NavbarProps) {
+  const NavButton = ({ view, icon: Icon, onClick }: { view: View; icon: React.ElementType; onClick?: () => void }) => (
     <button
-      onClick={() => onViewChange(view)}
+      onClick={onClick || (() => onViewChange(view))}
       className={`p-3 rounded-xl transition-all duration-300 relative group ${
         currentView === view
           ? 'bg-[#00B09C] text-white'
@@ -29,15 +30,7 @@ export default function Navbar({ currentView, onViewChange }: NavbarProps) {
       <div className="flex items-center space-x-8">
         <NavButton view="dashboard" icon={Home} />
         <NavButton view="calendar" icon={Calendar} />
-        <div className="relative px-2">
-          <button
-            onClick={() => onViewChange('newWedding')}
-            className="bg-[#00B09C] text-white p-4 rounded-xl shadow-lg hover:shadow-[#00B09C]/20 hover:scale-110 transition-all duration-300 relative -top-4"
-          >
-            <Plus className="h-6 w-6" />
-            <span className="absolute inset-0 bg-white rounded-xl opacity-20 hover:opacity-0 transition-opacity duration-300"></span>
-          </button>
-        </div>
+        <NavButton view="newWedding" icon={Plus} onClick={onNewWedding} />
         <NavButton view="notifications" icon={Bell} />
         <NavButton view="settings" icon={Settings} />
       </div>

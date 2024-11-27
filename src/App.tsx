@@ -19,183 +19,131 @@ function App() {
   const [weddings, setWeddings] = useState<Wedding[]>([]);
   const [isNewWeddingModalOpen, setIsNewWeddingModalOpen] = useState(false);
 
-  // Fonction utilitaire pour les requêtes API
-  const api = {
-    baseUrl: import.meta.env.PROD 
-      ? 'https://wedding-planner-app-qlvw.onrender.com/api'
-      : 'http://localhost:3000/api',
-      
-    async fetch(endpoint: string, options: RequestInit = {}) {
-      const url = `${this.baseUrl}${endpoint}`;
-      console.log('Making API request to:', url);
-      
-      const defaultOptions: RequestInit = {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        mode: 'cors',
-        credentials: 'include'
-      };
-
-      try {
-        const response = await fetch(url, {
-          ...defaultOptions,
-          ...options,
-          headers: {
-            ...defaultOptions.headers,
-            ...options.headers
-          }
-        });
-
-        if (!response.ok) {
-          console.error('API Error Response:', {
-            status: response.status,
-            statusText: response.statusText,
-            url
-          });
-
-          if (response.status === 0 || !response.status) {
-            throw new Error('Le serveur n\'est pas accessible. Veuillez réessayer plus tard.');
-          }
-
-          const errorText = await response.text();
-          console.error('Error details:', errorText);
-          
-          throw new Error(
-            `Erreur ${response.status}: ${response.statusText || 'Erreur inconnue'}`
-          );
-        }
-
-        const data = await response.json();
-        console.log('API Response:', data);
-        return data;
-      } catch (error) {
-        console.error('API Request failed:', error);
-        
-        if (!navigator.onLine) {
-          throw new Error('Pas de connexion Internet. Veuillez vérifier votre connexion.');
-        }
-        
-        if (error instanceof TypeError && error.message === 'Failed to fetch') {
-          throw new Error('Le serveur n\'est pas accessible. Veuillez réessayer plus tard.');
-        }
-
-        throw error;
-      }
-    }
-  };
-
-  // Charger les mariages depuis l'API
   useEffect(() => {
-    const fetchWeddings = async () => {
-      try {
-        console.log('Fetching weddings...');
-        const data = await api.fetch('/weddings');
-        console.log('Weddings fetched successfully:', data);
-        setWeddings(data);
-      } catch (error) {
-        console.error('Error fetching weddings:', error);
-      }
-    };
-
+    console.log('App component mounted');
+    console.log('Authentication status:', isAuthenticated);
+    console.log('Current API URL:', import.meta.env.VITE_API_URL);
+    
     if (isAuthenticated) {
+      console.log('User is authenticated, fetching weddings...');
       fetchWeddings();
     }
   }, [isAuthenticated]);
 
-  const handleAddWedding = async (weddingData: Omit<Wedding, 'id'>) => {
-    console.log('Adding new wedding:', weddingData);
+  const fetchWeddings = async () => {
     try {
-      const newWedding = await api.fetch('/weddings', {
-        method: 'POST',
-        body: JSON.stringify(weddingData)
-      });
-      
-      console.log('Wedding added successfully:', newWedding);
-      setWeddings(prevWeddings => [...prevWeddings, newWedding]);
-      setIsNewWeddingModalOpen(false);
+      console.log('Fetching weddings...');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/weddings`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch weddings: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log('Weddings fetched:', data);
+      // Vérifier si data est un tableau ou s'il contient une propriété weddings
+      const weddingsArray = Array.isArray(data) ? data : data.weddings;
+      setWeddings(weddingsArray || []);
     } catch (error) {
-      console.error('Error adding wedding:', error);
-      if (error instanceof TypeError && error.message === 'Failed to fetch') {
-        throw new Error('Le serveur n\'est pas accessible. Veuillez vérifier votre connexion.');
-      }
-      throw error;
+      console.error('Error fetching weddings:', error);
+      // Initialiser avec un tableau vide en cas d'erreur
+      setWeddings([]);
     }
   };
 
-  const handleWeddingSelect = (wedding: Wedding) => {
-    setSelectedWedding(wedding);
-    setView('details');
-  };
+  if (!isAuthenticated) {
+    return (
+      <ThemeProvider>
+        <AccessCodeForm onSuccess={() => {
+          console.log('Authentication successful');
+          setIsAuthenticated(true);
+        }} />
+      </ThemeProvider>
+    );
+  }
 
-  const handleViewChange = (newView: View) => {
-    if (newView === 'newWedding') {
-      setIsNewWeddingModalOpen(true);
-    } else {
-      setView(newView);
-      if (newView !== 'details') {
-        setSelectedWedding(null);
-      }
-    }
-  };
+  const renderContent = () => {
+    console.log('Rendering content, current view:', view);
+    console.log('Current weddings:', weddings);
 
-  const renderView = () => {
     switch (view) {
       case 'dashboard':
         return (
-          <Dashboard
-            weddings={weddings}
-            onWeddingSelect={handleWeddingSelect}
+          <Dashboard 
+            weddings={weddings} 
+            onWeddingSelect={(wedding) => {
+              console.log('Wedding selected:', wedding);
+              setSelectedWedding(wedding);
+              setView('details');
+            }} 
           />
         );
       case 'calendar':
-        return (
-          <CalendarView
-            weddings={weddings}
-            onWeddingSelect={handleWeddingSelect}
-          />
-        );
+        return <CalendarView 
+          weddings={weddings} 
+          onWeddingSelect={(wedding) => {
+            console.log('Wedding selected from calendar:', wedding);
+            setSelectedWedding(wedding);
+            setView('details');
+          }}
+        />;
       case 'details':
         return selectedWedding ? (
-          <WeddingDetails
-            wedding={selectedWedding}
-            onBack={() => handleViewChange('dashboard')}
+          <WeddingDetails 
+            wedding={selectedWedding} 
+            onBack={() => setView('dashboard')}
           />
         ) : null;
       case 'notifications':
-        return (
-          <NotificationsView
-            weddings={weddings}
-            onViewChange={handleViewChange}
-          />
-        );
+        return <NotificationsView weddings={weddings} onViewChange={setView} />;
       case 'settings':
         return <SettingsView />;
       default:
-        return null;
+        return <Dashboard weddings={weddings} onWeddingSelect={setSelectedWedding} />;
     }
   };
 
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
-        <div className="max-w-7xl mx-auto pb-24">
-          <main className="px-6 py-8">
-            {renderView()}
-          </main>
-        </div>
-
-        <NewWeddingForm
-          isOpen={isNewWeddingModalOpen}
-          onSubmit={handleAddWedding}
-          onCancel={() => setIsNewWeddingModalOpen(false)}
-        />
-
-        <Navbar
+      <div className="min-h-screen bg-gray-900 text-white">
+        <Navbar 
           currentView={view}
-          onViewChange={handleViewChange}
+          onViewChange={setView}
+          onNewWedding={() => setIsNewWeddingModalOpen(true)}
         />
+        <main className="container mx-auto px-4 py-8">
+          {renderContent()}
+        </main>
+        {isNewWeddingModalOpen && (
+          <NewWeddingForm
+            onClose={() => setIsNewWeddingModalOpen(false)}
+            onSave={async (newWedding) => {
+              try {
+                console.log('Envoi des données au serveur:', newWedding);
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/weddings`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(newWedding),
+                });
+                
+                if (!response.ok) {
+                  const errorData = await response.json();
+                  console.error('Erreur serveur:', errorData);
+                  throw new Error(errorData.message || `Erreur ${response.status}: ${response.statusText}`);
+                }
+
+                const savedWedding = await response.json();
+                console.log('Mariage sauvegardé avec succès:', savedWedding);
+                setWeddings(prev => [...prev, savedWedding]);
+                setIsNewWeddingModalOpen(false);
+                setView('dashboard');
+              } catch (error) {
+                console.error('Erreur lors de la sauvegarde:', error);
+                throw error;
+              }
+            }}
+          />
+        )}
       </div>
     </ThemeProvider>
   );

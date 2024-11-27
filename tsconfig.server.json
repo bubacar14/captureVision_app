@@ -10,7 +10,8 @@
     "rootDir": ".",
     "allowJs": true,
     "resolveJsonModule": true,
-    "types": ["node"]
+    "types": ["node", "express"],
+    "noImplicitAny": false
   },
   "include": ["server.ts"],
   "exclude": ["node_modules"]
