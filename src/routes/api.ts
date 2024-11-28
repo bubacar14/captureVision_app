@@ -3,6 +3,11 @@ import type { Request, Response } from 'express';
 import Wedding from '../models/Wedding.js';
 import mongoose from 'mongoose';
 
+interface MongoError extends Error {
+  name: string;
+  code?: number;
+}
+
 const router = express.Router();
 
 // Middleware de validation des IDs MongoDB
@@ -67,9 +72,9 @@ router.get('/weddings', async (req: Request, res: Response) => {
           createdAt: wedding.createdAt ? new Date(wedding.createdAt).toISOString() : null,
           updatedAt: wedding.updatedAt ? new Date(wedding.updatedAt).toISOString() : null
         };
-      } catch (error) {
-        console.error('Error formatting wedding:', wedding, error);
-        throw new Error(`Error formatting wedding data: ${error.message}`);
+      } catch (err) {
+        console.error('Error formatting wedding:', wedding, err);
+        throw new Error(`Error formatting wedding data: ${(err as Error).message}`);
       }
     });
 
@@ -89,27 +94,35 @@ router.get('/weddings', async (req: Request, res: Response) => {
 
     return res.json(response);
 
-  } catch (error) {
-    console.error('Error in GET /weddings:', error);
+  } catch (err: unknown) {
+    console.error('Error in GET /weddings:', err);
     
     // Déterminer le type d'erreur et envoyer une réponse appropriée
-    if (error.name === 'MongoError' || error.name === 'MongooseError') {
+    if (err instanceof Error) {
+      if (err.name === 'MongoError' || err.name === 'MongooseError') {
+        return res.status(500).json({
+          error: 'Database error',
+          details: process.env.NODE_ENV === 'development' ? err.message : 'A database error occurred'
+        });
+      }
+
+      if (err.message === 'Database query timeout') {
+        return res.status(504).json({
+          error: 'Request timeout',
+          details: 'The request took too long to process'
+        });
+      }
+
       return res.status(500).json({
-        error: 'Database error',
-        details: process.env.NODE_ENV === 'development' ? error.message : 'A database error occurred'
+        error: 'Server error',
+        details: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
       });
     }
 
-    if (error.message === 'Database query timeout') {
-      return res.status(504).json({
-        error: 'Request timeout',
-        details: 'The request took too long to process'
-      });
-    }
-
+    // Fallback pour les erreurs inconnues
     return res.status(500).json({
-      error: 'Server error',
-      details: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'
+      error: 'Unknown error',
+      details: 'An unexpected error occurred'
     });
   }
 });
@@ -164,17 +177,17 @@ router.post('/weddings', async (req: Request, res: Response) => {
     await wedding.save();
     console.log('Wedding saved successfully:', wedding);
     return res.status(201).json(wedding);
-  } catch (error) {
-    console.error('Error creating wedding:', error);
-    if (error instanceof Error) {
+  } catch (err: unknown) {
+    console.error('Error creating wedding:', err);
+    if (err instanceof Error) {
       res.status(400).json({ 
         error: 'Validation error',
-        details: error.message
+        details: err.message
       });
     } else {
       res.status(500).json({ 
         error: 'Unknown error',
-        details: String(error)
+        details: String(err)
       });
     }
   }
@@ -200,17 +213,17 @@ router.put('/weddings/:id', validateObjectId, async (req: Request, res: Response
     Object.assign(wedding, req.body);
     await wedding.save();
     return res.json(wedding);
-  } catch (error) {
-    console.error('Error updating wedding:', error);
-    if (error instanceof Error) {
+  } catch (err: unknown) {
+    console.error('Error updating wedding:', err);
+    if (err instanceof Error) {
       res.status(500).json({ 
         error: 'Server error',
-        details: error.message
+        details: err.message
       });
     } else {
       res.status(500).json({ 
         error: 'Unknown error',
-        details: String(error)
+        details: String(err)
       });
     }
   }
@@ -224,17 +237,17 @@ router.delete('/weddings/:id', validateObjectId, async (req: Request, res: Respo
       return res.status(404).json({ message: 'Wedding not found' });
     }
     return res.status(204).send();
-  } catch (error) {
-    console.error('Error deleting wedding:', error);
-    if (error instanceof Error) {
+  } catch (err: unknown) {
+    console.error('Error deleting wedding:', err);
+    if (err instanceof Error) {
       res.status(500).json({ 
         error: 'Server error',
-        details: error.message
+        details: err.message
       });
     } else {
       res.status(500).json({ 
         error: 'Unknown error',
-        details: String(error)
+        details: String(err)
       });
     }
   }
@@ -265,17 +278,17 @@ router.get('/weddings/search', async (req: Request, res: Response) => {
       .lean();
 
     return res.json(weddings);
-  } catch (error) {
-    console.error('Error searching weddings:', error);
-    if (error instanceof Error) {
+  } catch (err: unknown) {
+    console.error('Error searching weddings:', err);
+    if (err instanceof Error) {
       res.status(500).json({ 
         error: 'Server error',
-        details: error.message
+        details: err.message
       });
     } else {
       res.status(500).json({ 
         error: 'Unknown error',
-        details: String(error)
+        details: String(err)
       });
     }
   }
