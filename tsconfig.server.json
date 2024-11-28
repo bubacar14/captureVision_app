@@ -11,7 +11,9 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "allowJs": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "noEmit": false,
+    "isolatedModules": false
   },
   "include": [
     "server.ts",
@@ -24,6 +26,7 @@
     "node_modules",
     "dist",
     "src/App.tsx",
-    "src/main.tsx"
+    "src/main.tsx",
+    "**/*.test.ts"
   ]
 }
