@@ -15,9 +15,12 @@ const validateObjectId = (req: Request, res: Response, next: Function) => {
 // Get all weddings with pagination
 router.get('/weddings', async (req: Request, res: Response) => {
   try {
+    console.log('Fetching weddings - Query params:', req.query);
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
+
+    console.log('Pagination params:', { page, limit, skip });
 
     const [weddings, total] = await Promise.all([
       Wedding.find()
@@ -28,28 +31,26 @@ router.get('/weddings', async (req: Request, res: Response) => {
       Wedding.countDocuments()
     ]);
 
+    console.log('Weddings found:', weddings.length, 'Total:', total);
     return res.json({
       weddings,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-        itemsPerPage: limit
-      }
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
     console.error('Error fetching weddings:', error);
     if (error instanceof Error) {
-      res.status(500).json({ 
-        error: 'Server error',
-        details: error.message
-      });
-    } else {
-      res.status(500).json({ 
-        error: 'Unknown error',
-        details: String(error)
+      return res.status(500).json({ 
+        error: 'Error fetching weddings',
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
     }
+    return res.status(500).json({ 
+      error: 'Unknown error occurred',
+      details: String(error)
+    });
   }
 });
 
