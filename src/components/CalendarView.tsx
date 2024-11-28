@@ -109,7 +109,7 @@ export default function CalendarView({ weddings, onWeddingSelect }: CalendarView
                   <div className="space-y-1">
                     {dayWeddings.map((wedding) => (
                       <button
-                        key={wedding.id}
+                        key={wedding._id}
                         onClick={() => onWeddingSelect(wedding)}
                         className="w-full text-left p-1 sm:p-2 rounded-lg bg-[#00B09C]/10 hover:bg-[#00B09C]/20 transition-all duration-300 group"
                       >

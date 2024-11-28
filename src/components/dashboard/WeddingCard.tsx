@@ -1,4 +1,3 @@
-import React from 'react';
 import { format } from 'date-fns';
 import { MapPin, Clock, Users } from 'lucide-react';
 import { Wedding } from '../../types';

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ThemeProvider } from './context/ThemeContext';
-import AccessCodeForm from './components/AccessCodeForm';
+import { Wedding, WeddingInput, View } from './types';
 import Dashboard from './components/Dashboard';
 import CalendarView from './components/CalendarView';
 import WeddingDetails from './components/WeddingDetails';
@@ -8,9 +7,8 @@ import NotificationsView from './components/NotificationsView';
 import SettingsView from './components/SettingsView';
 import NewWeddingForm from './components/NewWeddingForm';
 import Navbar from './components/layout/Navbar';
-import { Wedding, WeddingData } from './types';
-
-type View = 'dashboard' | 'calendar' | 'details' | 'notifications' | 'settings' | 'newWedding';
+import AccessCodeForm from './components/AccessCodeForm';
+import { ThemeProvider } from './context/ThemeContext';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(true); // Authentifié par défaut
@@ -185,27 +183,29 @@ function App() {
     }
   };
 
-  const onSave = async (weddingData: Omit<Wedding, '_id'>) => {
+  const onSave = async (weddingData: WeddingInput) => {
     try {
       console.log('Saving wedding data:', weddingData);
       
-      const response = await fetch('http://localhost:3000/api/weddings', {
+      const response = await fetch('/api/weddings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(weddingData),
+        body: JSON.stringify({
+          ...weddingData,
+          date: new Date(weddingData.date),
+        }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.message || `HTTP error! status: ${response.status}`);
+        throw new Error('Failed to save wedding');
       }
 
       const savedWedding = await response.json();
       console.log('Wedding saved successfully:', savedWedding);
       
-      setWeddings(prevWeddings => [...prevWeddings, savedWedding]);
+      setWeddings([...weddings, savedWedding]);
       setIsNewWeddingModalOpen(false);
       setView('dashboard');
     } catch (error) {
@@ -227,7 +227,7 @@ function App() {
         </main>
         {isNewWeddingModalOpen && (
           <NewWeddingForm
-            onClose={() => setIsNewWeddingModalOpen(false)}
+            onCancel={() => setIsNewWeddingModalOpen(false)}
             onSave={onSave}
           />
         )}

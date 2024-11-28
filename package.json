@@ -6,12 +6,12 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "vite",
-    "dev:server": "nodemon --watch server.ts --watch models --exec \"node --loader ts-node/esm\" server.ts",
+    "dev:server": "nodemon --watch server.ts --watch models --exec \"ts-node\" server.ts",
     "build": "tsc && vite build",
     "build:server": "tsc -p tsconfig.server.json",
     "start": "node dist/server.js",
     "preview": "vite preview --host 0.0.0.0 --port $PORT",
-    "postinstall": "npm run build && npm run build:server"
+    "postinstall": "npm run build:server && npm run build"
   },
   "dependencies": {
     "@types/mongoose": "^5.11.97",

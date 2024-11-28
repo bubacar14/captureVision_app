@@ -45,7 +45,7 @@ export default function NotificationsView({ weddings, onViewChange }: Notificati
           const oneWeekBefore = addWeeks(weddingDate, -1);
           if (isAfter(oneWeekBefore, today)) {
             notifications.push({
-              id: `${wedding.id}-week`,
+              id: `${wedding._id}-week`,
               wedding,
               type: 'oneWeek',
               notifyDate: oneWeekBefore,
@@ -57,7 +57,7 @@ export default function NotificationsView({ weddings, onViewChange }: Notificati
           const threeDaysBefore = addDays(weddingDate, -3);
           if (isAfter(threeDaysBefore, today)) {
             notifications.push({
-              id: `${wedding.id}-3days`,
+              id: `${wedding._id}-3days`,
               wedding,
               type: 'threeDays',
               notifyDate: threeDaysBefore,
@@ -69,7 +69,7 @@ export default function NotificationsView({ weddings, onViewChange }: Notificati
           const oneDayBefore = addDays(weddingDate, -1);
           if (isAfter(oneDayBefore, today)) {
             notifications.push({
-              id: `${wedding.id}-day`,
+              id: `${wedding._id}-day`,
               wedding,
               type: 'oneDay',
               notifyDate: oneDayBefore,
@@ -109,9 +109,9 @@ export default function NotificationsView({ weddings, onViewChange }: Notificati
         </div>
 
         <div className="space-y-4">
-          {notifications.map(({ id, wedding, type, notifyDate }) => (
+          {notifications.map(({ wedding, type, notifyDate }) => (
             <div
-              key={id}
+              key={`${wedding._id}-${type}`}
               className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-colors"
             >
               <div className="flex items-start justify-between">

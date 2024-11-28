@@ -20,6 +20,6 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src", "server.ts", "models"],
+  "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

@@ -1,42 +1,51 @@
 export interface Wedding {
-  _id?: string;
+  _id: string;
   clientName: string;
-  partnersName?: string;
+  partnersName: string;
   date: Date;
-  venue: string;
-  guestCount: number;
-  budget?: number;
-  phoneNumber: string;
-  email?: string;
-  notes?: string;
-  status?: string;
-  services?: string[];
-  timeline?: {
-    time: string;
-    event: string;
-    _id?: string;
-  }[];
-}
-
-export interface Wedding {
-  id: string;
-  clientName: string;
-  partnersName?: string;
-  date: string;
   venue: string;
   phoneNumber: string;
   guestCount: number;
   budget: number;
+  status: 'planned' | 'confirmed' | 'completed' | 'cancelled';
   notes?: string;
-  ceremonyType: 'civil' | 'religious' | 'both';
+  ceremonyType: string;
   notifications: {
     oneWeek: boolean;
     threeDays: boolean;
     oneDay: boolean;
   };
+  timeline?: {
+    time: string;
+    event: string;
+    _id?: string;
+  }[];
+  services?: string[];
 }
 
-export type WeddingData = Omit<Wedding, 'id'>;
+export type WeddingInput = Omit<Wedding, '_id' | 'date'> & {
+  date: string; 
+};
+
+export type WeddingFormData = {
+  clientName: string;
+  partnersName: string;
+  date: string;
+  venue: string;
+  phoneNumber: string;
+  guestCount: number;
+  budget: number;
+  notes: string;
+  ceremonyType: string;
+  status: 'planned' | 'confirmed' | 'completed' | 'cancelled';
+  notifications: {
+    oneWeek: boolean;
+    threeDays: boolean;
+    oneDay: boolean;
+  };
+};
+
+export type WeddingData = Omit<Wedding, '_id'>;
 
 export type { Wedding as Event };
 

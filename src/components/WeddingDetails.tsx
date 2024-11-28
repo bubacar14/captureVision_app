@@ -1,4 +1,3 @@
-import React from 'react';
 import { format } from 'date-fns';
 import { ArrowLeft, MapPin, Users, Clock, Bell, Phone, CalendarDays, FileText } from 'lucide-react';
 import { Wedding } from '../types';
@@ -33,7 +32,7 @@ export default function WeddingDetails({ wedding, onBack }: WeddingDetailsProps)
             </div>
             <div className="px-4 py-2 bg-teal-500 bg-opacity-10 rounded-lg">
               <div className="text-sm font-medium text-teal-400">Wedding ID</div>
-              <div className="text-lg font-mono text-gray-300">#{wedding.id}</div>
+              <div className="text-lg font-mono text-gray-300">#{wedding._id}</div>
             </div>
           </div>
         </div>

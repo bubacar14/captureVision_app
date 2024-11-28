@@ -39,7 +39,17 @@ router.get('/weddings', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error fetching weddings:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof Error) {
+      res.status(500).json({ 
+        error: 'Server error',
+        details: error.message
+      });
+    } else {
+      res.status(500).json({ 
+        error: 'Unknown error',
+        details: String(error)
+      });
+    }
   }
 });
 
@@ -61,16 +71,17 @@ router.post('/weddings', async (req: Request, res: Response) => {
     return res.status(201).json(wedding);
   } catch (error) {
     console.error('Error creating wedding:', error);
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({ 
-        message: 'Validation error',
-        errors: Object.values(error.errors).map(err => err.message)
+    if (error instanceof Error) {
+      res.status(400).json({ 
+        error: 'Validation error',
+        details: error.message
+      });
+    } else {
+      res.status(500).json({ 
+        error: 'Unknown error',
+        details: String(error)
       });
     }
-    return res.status(500).json({ 
-      message: 'Error creating wedding',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
   }
 });
 
@@ -96,13 +107,17 @@ router.put('/weddings/:id', validateObjectId, async (req: Request, res: Response
     return res.json(wedding);
   } catch (error) {
     console.error('Error updating wedding:', error);
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({ 
-        message: 'Validation error',
-        errors: Object.values(error.errors).map(err => err.message)
+    if (error instanceof Error) {
+      res.status(500).json({ 
+        error: 'Server error',
+        details: error.message
+      });
+    } else {
+      res.status(500).json({ 
+        error: 'Unknown error',
+        details: String(error)
       });
     }
-    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -116,7 +131,17 @@ router.delete('/weddings/:id', validateObjectId, async (req: Request, res: Respo
     return res.status(204).send();
   } catch (error) {
     console.error('Error deleting wedding:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof Error) {
+      res.status(500).json({ 
+        error: 'Server error',
+        details: error.message
+      });
+    } else {
+      res.status(500).json({ 
+        error: 'Unknown error',
+        details: String(error)
+      });
+    }
   }
 });
 
@@ -147,7 +172,17 @@ router.get('/weddings/search', async (req: Request, res: Response) => {
     return res.json(weddings);
   } catch (error) {
     console.error('Error searching weddings:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof Error) {
+      res.status(500).json({ 
+        error: 'Server error',
+        details: error.message
+      });
+    } else {
+      res.status(500).json({ 
+        error: 'Unknown error',
+        details: String(error)
+      });
+    }
   }
 });
 
