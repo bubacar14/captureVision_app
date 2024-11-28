@@ -7,7 +7,7 @@ const weddingSchema = new mongoose.Schema({
   },
   partnersName: {
     type: String,
-    default: ''
+    required: [true, 'Le nom des partenaires est requis']
   },
   date: {
     type: Date,
@@ -23,15 +23,27 @@ const weddingSchema = new mongoose.Schema({
   },
   guestCount: {
     type: Number,
-    default: 0
+    required: [true, 'Le nombre d\'invités est requis'],
+    min: [0, 'Le nombre d\'invités ne peut pas être négatif']
   },
   budget: {
     type: Number,
-    default: 0
+    required: [true, 'Le budget est requis'],
+    min: [0, 'Le budget ne peut pas être négatif']
   },
   notes: {
     type: String,
     default: ''
+  },
+  ceremonyType: {
+    type: String,
+    required: [true, 'Le type de cérémonie est requis']
+  },
+  status: {
+    type: String,
+    enum: ['planned', 'confirmed', 'completed', 'cancelled'],
+    default: 'planned',
+    required: true
   },
   notifications: {
     oneWeek: {
@@ -51,4 +63,6 @@ const weddingSchema = new mongoose.Schema({
   timestamps: true
 });
 
-export default mongoose.model('Wedding', weddingSchema);
+const Wedding = mongoose.model('Wedding', weddingSchema);
+
+export default Wedding;

@@ -10,6 +10,8 @@ import Navbar from './components/layout/Navbar';
 import AccessCodeForm from './components/AccessCodeForm';
 import { ThemeProvider } from './context/ThemeContext';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(true); // Authentifié par défaut
   const [view, setView] = useState<View>('dashboard');
@@ -20,7 +22,7 @@ function App() {
   useEffect(() => {
     console.log('App component mounted');
     console.log('Authentication status:', isAuthenticated);
-    console.log('Current API URL:', import.meta.env.VITE_API_URL);
+    console.log('Current API URL:', API_BASE_URL);
     
     // Toujours charger les mariages au démarrage
     if (isAuthenticated) {
@@ -35,9 +37,9 @@ function App() {
     try {
       console.log('\n=== Fetching Weddings ===');
       console.log('Time:', new Date().toISOString());
+      console.log('API Base URL:', API_BASE_URL);
       
-      // Utilisation de l'URL complète du backend
-      const response = await fetch('http://localhost:3000/api/weddings', {
+      const response = await fetch(`${API_BASE_URL}/api/weddings`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -186,8 +188,9 @@ function App() {
   const onSave = async (weddingData: WeddingInput) => {
     try {
       console.log('Saving wedding data:', weddingData);
+      console.log('API Base URL:', API_BASE_URL);
       
-      const response = await fetch('/api/weddings', {
+      const response = await fetch(`${API_BASE_URL}/api/weddings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -199,7 +202,17 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save wedding');
+        const errorData = await response.text();
+        console.error('Server error response:', errorData);
+        let errorMessage = 'Failed to save wedding';
+        try {
+          const parsedError = JSON.parse(errorData);
+          errorMessage = parsedError.message || parsedError.error || errorMessage;
+        } catch (e) {
+          // Si le texte n'est pas du JSON valide, utiliser le texte brut
+          errorMessage = errorData || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       const savedWedding = await response.json();

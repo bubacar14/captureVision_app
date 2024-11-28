@@ -58,16 +58,50 @@ router.post('/weddings', async (req: Request, res: Response) => {
   try {
     console.log('Received wedding data:', req.body);
     
-    const wedding = new Wedding(req.body);
+    // Vérifier que tous les champs requis sont présents
+    const requiredFields = ['clientName', 'partnersName', 'date', 'venue', 'phoneNumber', 'guestCount', 'budget', 'ceremonyType'];
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        details: `Missing fields: ${missingFields.join(', ')}`
+      });
+    }
+
+    // Vérifier que la date est valide
+    const weddingDate = new Date(req.body.date);
+    if (isNaN(weddingDate.getTime())) {
+      return res.status(400).json({
+        error: 'Invalid date format',
+        details: 'The provided date is not valid'
+      });
+    }
+
+    // Créer le mariage avec les valeurs par défaut si nécessaire
+    const weddingData = {
+      ...req.body,
+      date: weddingDate,
+      status: req.body.status || 'planned',
+      notifications: {
+        oneWeek: true,
+        threeDays: true,
+        oneDay: true,
+        ...req.body.notifications
+      }
+    };
+
+    const wedding = new Wedding(weddingData);
     const validationError = wedding.validateSync();
     if (validationError) {
       return res.status(400).json({ 
-        message: 'Validation error',
-        errors: Object.values(validationError.errors).map(err => err.message)
+        error: 'Validation error',
+        details: Object.values(validationError.errors).map(err => err.message)
       });
     }
 
     await wedding.save();
+    console.log('Wedding saved successfully:', wedding);
     return res.status(201).json(wedding);
   } catch (error) {
     console.error('Error creating wedding:', error);
