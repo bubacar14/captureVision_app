@@ -1,12 +1,9 @@
-import path from 'path';
-import { fileURLToPath } from 'url';
 import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import rateLimit from 'express-rate-limit';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import Wedding from './models/Wedding';
 import weddingRoutes from './src/routes/api';
 
@@ -16,86 +13,110 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Middleware
-const corsOptions = {
-  origin: process.env.CORS_ORIGINS?.split(',') || [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'https://capturevision-app.onrender.com'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Configuration CORS
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://capturevision-app.onrender.com'
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn('Blocked by CORS:', origin);
+      callback(null, false);
+    }
+  },
+  credentials: true
+}));
+
+// MongoDB Connection
+const connectDB = async () => {
+  try {
+    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wedding-planner';
+    if (!mongoURI) {
+      throw new Error('MongoDB URI is not defined in environment variables');
+    }
+
+    console.log('Connecting to MongoDB...');
+    await mongoose.connect(mongoURI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
+
+    console.log('MongoDB connected successfully');
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    process.exit(1);
+  }
 };
 
-app.use(cors(corsOptions));
-app.use(helmet({
-  contentSecurityPolicy: false
-}));
-app.use(compression());
-app.use(express.json());
-
-// Serve static files from the React app
-app.use(express.static(path.join(__dirname, 'dist')));
-
-// API Routes
-app.use('/api', weddingRoutes);
-
-// Catch-all route to return the React app
-app.get('*', (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
-
-// Error handling middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error('Error:', err);
-  res.status(500).json({
-    error: 'Server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
-  });
-});
-
-// MongoDB connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wedding-planner';
-console.log('Connecting to MongoDB...');
-
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
-} as mongoose.ConnectOptions).then(() => {
-  console.log('Successfully connected to MongoDB');
-  // Start server only after successful database connection
-  app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-    console.log('Environment:', process.env.NODE_ENV);
-    console.log('API URL:', process.env.VITE_API_URL);
-  });
-}).catch(err => {
+// Handle MongoDB connection events
+mongoose.connection.on('error', (err) => {
   console.error('MongoDB connection error:', err);
-  process.exit(1);
 });
 
-const db = mongoose.connection;
-
-db.on('error', (error: Error) => {
-  console.error('MongoDB connection error:', error);
+mongoose.connection.on('disconnected', () => {
+  console.warn('MongoDB disconnected. Attempting to reconnect...');
+  connectDB();
 });
 
-db.on('disconnected', () => {
-  console.log('MongoDB disconnected. Attempting to reconnect...');
-});
-
-db.on('reconnected', () => {
+mongoose.connection.on('reconnected', () => {
   console.log('MongoDB reconnected');
 });
 
-db.once('open', () => {
+mongoose.connection.once('open', () => {
   console.log('Connected to MongoDB');
   console.log('Server is ready to accept requests');
 });
 
-export default app;
+// API Routes
+app.use('/api', weddingRoutes);
+
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  const clientBuildPath = path.join(__dirname, 'dist');
+  
+  app.use(express.static(clientBuildPath));
+  
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(clientBuildPath, 'index.html'));
+  });
+}
+
+// Error handling middleware
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error('Server error:', err);
+  res.status(500).json({
+    error: 'Server error',
+    details: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
+  });
+});
+
+// Start server
+const startServer = async () => {
+  try {
+    await connectDB();
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+      console.log('Environment:', process.env.NODE_ENV);
+      console.log('MongoDB URI:', process.env.MONGODB_URI ? 'Set' : 'Not set');
+      console.log('CORS origins:', allowedOrigins);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
