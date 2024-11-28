@@ -3,11 +3,6 @@ import type { Request, Response } from 'express';
 import Wedding from '../models/Wedding.js';
 import mongoose from 'mongoose';
 
-interface MongoError extends Error {
-  name: string;
-  code?: number;
-}
-
 const router = express.Router();
 
 // Middleware de validation des IDs MongoDB
@@ -38,12 +33,7 @@ router.get('/weddings', async (req: Request, res: Response) => {
 
     console.log('Query parameters:', { page, limit, skip });
 
-    // Utiliser une promesse pour gérer les timeouts
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Database query timeout')), 10000);
-    });
-
-    const queryPromise = Promise.all([
+    const [weddings, total] = await Promise.all([
       Wedding.find()
         .sort({ date: 1 })
         .skip(skip)
@@ -52,8 +42,6 @@ router.get('/weddings', async (req: Request, res: Response) => {
         .exec(),
       Wedding.countDocuments()
     ]);
-
-    const [weddings, total] = await Promise.race([queryPromise, timeoutPromise]) as [any[], number];
 
     console.log(`Found ${weddings.length} weddings out of ${total} total`);
 
@@ -74,7 +62,7 @@ router.get('/weddings', async (req: Request, res: Response) => {
         };
       } catch (err) {
         console.error('Error formatting wedding:', wedding, err);
-        throw new Error(`Error formatting wedding data: ${(err as Error).message}`);
+        throw new Error(`Error formatting wedding data: ${err instanceof Error ? err.message : 'Unknown error'}`);
       }
     });
 
@@ -94,35 +82,15 @@ router.get('/weddings', async (req: Request, res: Response) => {
 
     return res.json(response);
 
-  } catch (err: unknown) {
+  } catch (err) {
     console.error('Error in GET /weddings:', err);
     
-    // Déterminer le type d'erreur et envoyer une réponse appropriée
-    if (err instanceof Error) {
-      if (err.name === 'MongoError' || err.name === 'MongooseError') {
-        return res.status(500).json({
-          error: 'Database error',
-          details: process.env.NODE_ENV === 'development' ? err.message : 'A database error occurred'
-        });
-      }
+    const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+    const errorDetails = process.env.NODE_ENV === 'development' ? errorMessage : 'An error occurred';
 
-      if (err.message === 'Database query timeout') {
-        return res.status(504).json({
-          error: 'Request timeout',
-          details: 'The request took too long to process'
-        });
-      }
-
-      return res.status(500).json({
-        error: 'Server error',
-        details: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
-      });
-    }
-
-    // Fallback pour les erreurs inconnues
     return res.status(500).json({
-      error: 'Unknown error',
-      details: 'An unexpected error occurred'
+      error: 'Server error',
+      details: errorDetails
     });
   }
 });
@@ -130,66 +98,34 @@ router.get('/weddings', async (req: Request, res: Response) => {
 // Create a new wedding
 router.post('/weddings', async (req: Request, res: Response) => {
   try {
-    console.log('Received wedding data:', req.body);
-    
-    // Vérifier que tous les champs requis sont présents
-    const requiredFields = ['clientName', 'partnersName', 'date', 'venue', 'phoneNumber', 'guestCount', 'budget', 'ceremonyType'];
-    const missingFields = requiredFields.filter(field => !req.body[field]);
-    
-    if (missingFields.length > 0) {
-      return res.status(400).json({
-        error: 'Missing required fields',
-        details: `Missing fields: ${missingFields.join(', ')}`
-      });
-    }
-
-    // Vérifier que la date est valide
-    const weddingDate = new Date(req.body.date);
-    if (isNaN(weddingDate.getTime())) {
-      return res.status(400).json({
-        error: 'Invalid date format',
-        details: 'The provided date is not valid'
-      });
-    }
-
-    // Créer le mariage avec les valeurs par défaut si nécessaire
-    const weddingData = {
-      ...req.body,
-      date: weddingDate,
-      status: req.body.status || 'planned',
-      notifications: {
-        oneWeek: true,
-        threeDays: true,
-        oneDay: true,
-        ...req.body.notifications
-      }
-    };
-
-    const wedding = new Wedding(weddingData);
-    const validationError = wedding.validateSync();
-    if (validationError) {
-      return res.status(400).json({ 
-        error: 'Validation error',
-        details: Object.values(validationError.errors).map(err => err.message)
-      });
-    }
-
+    const wedding = new Wedding(req.body);
     await wedding.save();
-    console.log('Wedding saved successfully:', wedding);
     return res.status(201).json(wedding);
-  } catch (err: unknown) {
+  } catch (err) {
     console.error('Error creating wedding:', err);
-    if (err instanceof Error) {
-      res.status(400).json({ 
-        error: 'Validation error',
-        details: err.message
-      });
-    } else {
-      res.status(500).json({ 
-        error: 'Unknown error',
-        details: String(err)
-      });
+    const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+    return res.status(400).json({ 
+      error: 'Validation error',
+      details: errorMessage
+    });
+  }
+});
+
+// Get a specific wedding
+router.get('/weddings/:id', validateObjectId, async (req: Request, res: Response) => {
+  try {
+    const wedding = await Wedding.findById(req.params.id);
+    if (!wedding) {
+      return res.status(404).json({ message: 'Wedding not found' });
     }
+    return res.json(wedding);
+  } catch (err) {
+    console.error('Error fetching wedding:', err);
+    const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+    return res.status(500).json({ 
+      error: 'Server error',
+      details: errorMessage
+    });
   }
 });
 
@@ -200,32 +136,16 @@ router.put('/weddings/:id', validateObjectId, async (req: Request, res: Response
     if (!wedding) {
       return res.status(404).json({ message: 'Wedding not found' });
     }
-
-    // Validate update data
-    const validationError = new Wedding(req.body).validateSync();
-    if (validationError) {
-      return res.status(400).json({ 
-        message: 'Validation error',
-        errors: Object.values(validationError.errors).map(err => err.message)
-      });
-    }
-
     Object.assign(wedding, req.body);
     await wedding.save();
     return res.json(wedding);
-  } catch (err: unknown) {
+  } catch (err) {
     console.error('Error updating wedding:', err);
-    if (err instanceof Error) {
-      res.status(500).json({ 
-        error: 'Server error',
-        details: err.message
-      });
-    } else {
-      res.status(500).json({ 
-        error: 'Unknown error',
-        details: String(err)
-      });
-    }
+    const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+    return res.status(500).json({ 
+      error: 'Server error',
+      details: errorMessage
+    });
   }
 });
 
@@ -237,19 +157,13 @@ router.delete('/weddings/:id', validateObjectId, async (req: Request, res: Respo
       return res.status(404).json({ message: 'Wedding not found' });
     }
     return res.status(204).send();
-  } catch (err: unknown) {
+  } catch (err) {
     console.error('Error deleting wedding:', err);
-    if (err instanceof Error) {
-      res.status(500).json({ 
-        error: 'Server error',
-        details: err.message
-      });
-    } else {
-      res.status(500).json({ 
-        error: 'Unknown error',
-        details: String(err)
-      });
-    }
+    const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+    return res.status(500).json({ 
+      error: 'Server error',
+      details: errorMessage
+    });
   }
 });
 
@@ -278,19 +192,13 @@ router.get('/weddings/search', async (req: Request, res: Response) => {
       .lean();
 
     return res.json(weddings);
-  } catch (err: unknown) {
+  } catch (err) {
     console.error('Error searching weddings:', err);
-    if (err instanceof Error) {
-      res.status(500).json({ 
-        error: 'Server error',
-        details: err.message
-      });
-    } else {
-      res.status(500).json({ 
-        error: 'Unknown error',
-        details: String(err)
-      });
-    }
+    const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+    return res.status(500).json({ 
+      error: 'Server error',
+      details: errorMessage
+    });
   }
 });
 
