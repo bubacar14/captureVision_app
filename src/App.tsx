@@ -31,38 +31,41 @@ function App() {
     setIsLoading(true);
     setError(null);
     try {
-      console.log('Fetching weddings from:', `${API_BASE_URL}/api/weddings`);
+      const apiUrl = `${API_BASE_URL}/api/weddings`;
+      console.log('Fetching weddings from:', apiUrl);
       
-      const response = await fetch(`${API_BASE_URL}/api/weddings`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await fetch(apiUrl);
+      const responseText = await response.text();
+      console.log('Raw response:', responseText);
 
       if (!response.ok) {
-        const errorText = await response.text();
         console.error('Error response:', {
           status: response.status,
           statusText: response.statusText,
-          body: errorText
+          body: responseText
         });
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      console.log('Weddings data received:', data);
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse response as JSON:', responseText);
+        throw new Error('Invalid JSON response from server');
+      }
+
+      console.log('Parsed data:', data);
       
-      if (data && data.weddings) {
+      if (data && Array.isArray(data.weddings)) {
         setWeddings(data.weddings);
       } else {
         console.error('Unexpected data format:', data);
-        setError('Données reçues dans un format inattendu');
+        throw new Error('Données reçues dans un format inattendu');
       }
     } catch (error) {
       console.error('Error fetching weddings:', error);
-      setError('Erreur lors de la récupération des mariages');
+      setError(error instanceof Error ? error.message : 'Erreur lors de la récupération des mariages');
     } finally {
       setIsLoading(false);
     }
