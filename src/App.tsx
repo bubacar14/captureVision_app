@@ -8,12 +8,12 @@ import NotificationsView from './components/NotificationsView';
 import SettingsView from './components/SettingsView';
 import NewWeddingForm from './components/NewWeddingForm';
 import Navbar from './components/layout/Navbar';
-import { Wedding } from './types';
+import { Wedding, WeddingData } from './types';
 
 type View = 'dashboard' | 'calendar' | 'details' | 'notifications' | 'settings' | 'newWedding';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(true); // Authentifié par défaut
   const [view, setView] = useState<View>('dashboard');
   const [selectedWedding, setSelectedWedding] = useState<Wedding | null>(null);
   const [weddings, setWeddings] = useState<Wedding[]>([]);
@@ -35,21 +35,94 @@ function App() {
 
   const fetchWeddings = async () => {
     try {
-      console.log('Fetching weddings...');
-      console.log('API URL:', import.meta.env.VITE_API_URL);
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/weddings`);
+      console.log('\n=== Fetching Weddings ===');
+      console.log('Time:', new Date().toISOString());
+      
+      // Utilisation de l'URL complète du backend
+      const response = await fetch('http://localhost:3000/api/weddings', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
       console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch weddings: ${response.status}`);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+      // Récupérer le texte brut de la réponse d'abord
+      const rawText = await response.text();
+      console.log('Raw response text:', rawText);
+
+      // Vérifier si la réponse est vide
+      if (!rawText.trim()) {
+        throw new Error('Server returned empty response');
       }
-      const data = await response.json();
-      console.log('Weddings fetched:', data);
-      console.log('Is data an array?', Array.isArray(data));
-      setWeddings(Array.isArray(data) ? data : []);
-      console.log('Weddings state updated:', Array.isArray(data) ? data : []);
+
+      // Essayer de parser le JSON
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch (e) {
+        console.error('Failed to parse response as JSON:', {
+          rawText,
+          error: e instanceof Error ? e.message : String(e),
+          responseStatus: response.status,
+          responseHeaders: Object.fromEntries(response.headers.entries())
+        });
+        throw new Error('Server response was not valid JSON');
+      }
+
+      // Si la réponse n'est pas OK, analyser l'erreur
+      if (!response.ok) {
+        let errorDetails;
+        try {
+          errorDetails = JSON.parse(rawText);
+        } catch (e) {
+          errorDetails = { error: rawText };
+        }
+        
+        throw new Error(JSON.stringify({
+          status: response.status,
+          statusText: response.statusText,
+          details: errorDetails
+        }));
+      }
+
+      if (!Array.isArray(data)) {
+        console.error('Received data is not an array:', data);
+        throw new Error('Invalid data format received');
+      }
+
+      const processedData = data.map(wedding => ({
+        ...wedding,
+        date: new Date(wedding.date)
+      }));
+
+      console.log('Processed weddings:', processedData);
+      setWeddings(processedData);
+      console.log('=== Fetch Complete ===\n');
+
     } catch (error) {
-      console.error('Error fetching weddings:', error);
+      console.error('\n=== Error in fetchWeddings ===');
+      console.error('Time:', new Date().toISOString());
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          name: error.name,
+          stack: error.stack
+        });
+        try {
+          const parsedError = JSON.parse(error.message);
+          console.error('Parsed error:', parsedError);
+        } catch (e) {
+          console.error('Raw error message:', error.message);
+        }
+      } else {
+        console.error('Unknown error:', error);
+      }
+      console.error('=== Error End ===\n');
       setWeddings([]);
     }
   };
@@ -112,6 +185,35 @@ function App() {
     }
   };
 
+  const onSave = async (weddingData: Omit<Wedding, '_id'>) => {
+    try {
+      console.log('Saving wedding data:', weddingData);
+      
+      const response = await fetch('http://localhost:3000/api/weddings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(weddingData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const savedWedding = await response.json();
+      console.log('Wedding saved successfully:', savedWedding);
+      
+      setWeddings(prevWeddings => [...prevWeddings, savedWedding]);
+      setIsNewWeddingModalOpen(false);
+      setView('dashboard');
+    } catch (error) {
+      console.error('Error saving wedding:', error);
+      alert(`Erreur lors de l'enregistrement du mariage: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    }
+  };
+
   return (
     <ThemeProvider>
       <div className="min-h-screen bg-gray-900 text-white">
@@ -126,33 +228,7 @@ function App() {
         {isNewWeddingModalOpen && (
           <NewWeddingForm
             onClose={() => setIsNewWeddingModalOpen(false)}
-            onSave={async (newWedding) => {
-              try {
-                console.log('Envoi des données au serveur:', newWedding);
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/weddings`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify(newWedding),
-                });
-                
-                if (!response.ok) {
-                  const errorData = await response.json();
-                  console.error('Erreur serveur:', errorData);
-                  throw new Error(errorData.message || `Erreur ${response.status}: ${response.statusText}`);
-                }
-
-                const savedWedding = await response.json();
-                console.log('Mariage sauvegardé avec succès:', savedWedding);
-                setWeddings(prev => [...prev, savedWedding]);
-                setIsNewWeddingModalOpen(false);
-                setView('dashboard');
-              } catch (error) {
-                console.error('Erreur lors de la sauvegarde:', error);
-                throw error;
-              }
-            }}
+            onSave={onSave}
           />
         )}
       </div>

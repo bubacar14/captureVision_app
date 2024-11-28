@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -48,38 +47,16 @@ const weddingSchema = new mongoose.Schema({
 
 const Wedding = mongoose.model('Wedding', weddingSchema);
 
-// Sample wedding data
-const newWedding = {
-  clientName: "Sophie et Thomas",
-  partnersName: "Thomas Durant",
-  date: new Date("2024-06-15"),
-  venue: "Château de Versailles",
-  guestCount: 150,
-  budget: 35000,
-  phoneNumber: "+33 6 12 34 56 78",
-  email: "sophie.thomas@email.com",
-  notes: "Thème : Élégance romantique, Couleurs : Rose poudré et or",
-  status: "Confirmé",
-  services: ["Photo", "Vidéo", "Traiteur", "Décoration florale"],
-  timeline: [
-    { time: "14:00", event: "Cérémonie" },
-    { time: "15:30", event: "Cocktail" },
-    { time: "19:00", event: "Dîner" },
-    { time: "21:00", event: "Soirée dansante" }
-  ]
-};
-
-async function addWedding() {
+async function listWeddings() {
   try {
-    const wedding = new Wedding(newWedding);
-    const savedWedding = await wedding.save();
-    console.log('Wedding added successfully:', savedWedding);
+    const weddings = await Wedding.find({});
+    console.log('Found weddings:', JSON.stringify(weddings, null, 2));
     mongoose.connection.close();
   } catch (error) {
-    console.error('Error adding wedding:', error);
+    console.error('Error listing weddings:', error);
     mongoose.connection.close();
     process.exit(1);
   }
 }
 
-addWedding();
+listWeddings();
