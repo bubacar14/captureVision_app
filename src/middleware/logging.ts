@@ -19,15 +19,34 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
   const oldEnd = res.end;
   const chunks: Buffer[] = [];
 
-  res.write = function (chunk: Buffer) {
-    chunks.push(Buffer.from(chunk));
+  // Override write
+  res.write = function(
+    chunk: any,
+    encoding?: BufferEncoding | (() => void),
+    callback?: () => void
+  ): boolean {
+    if (Buffer.isBuffer(chunk)) {
+      chunks.push(chunk);
+    } else if (typeof chunk === 'string') {
+      chunks.push(Buffer.from(chunk, encoding as BufferEncoding));
+    }
     return oldWrite.apply(res, arguments as any);
   };
 
-  res.end = function (chunk: Buffer) {
+  // Override end
+  res.end = function(
+    chunk?: any,
+    encoding?: BufferEncoding | (() => void),
+    callback?: () => void
+  ): void {
     if (chunk) {
-      chunks.push(Buffer.from(chunk));
+      if (Buffer.isBuffer(chunk)) {
+        chunks.push(chunk);
+      } else if (typeof chunk === 'string') {
+        chunks.push(Buffer.from(chunk, encoding as BufferEncoding));
+      }
     }
+
     const responseBody = Buffer.concat(chunks).toString('utf8');
     const duration = Date.now() - start;
 
