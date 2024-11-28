@@ -2,64 +2,53 @@ import { Request, Response, NextFunction } from 'express';
 
 export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
-  const { method, url, headers, body } = req;
 
-  // Log request details
+  // Log request
   console.log(`
 🔍 Request:
   - Timestamp: ${new Date().toISOString()}
-  - Method: ${method}
-  - URL: ${url}
-  - Headers: ${JSON.stringify(headers)}
+  - Method: ${req.method}
+  - URL: ${req.url}
+  - Headers: ${JSON.stringify(req.headers)}
+  - Body: ${JSON.stringify(req.body)}
+`);
+
+  // Capture original methods
+  const originalSend = res.send;
+  const originalJson = res.json;
+  const originalEnd = res.end;
+
+  // Override send
+  res.send = function(body: any): Response {
+    console.log(`
+📤 Response (send):
+  - Duration: ${Date.now() - start}ms
+  - Status: ${res.statusCode}
   - Body: ${JSON.stringify(body)}
-  `);
+`);
+    return originalSend.apply(res, arguments);
+  };
 
-  // Capture response using response event handlers
-  const oldWrite = res.write;
-  const oldEnd = res.end;
-  const chunks: Buffer[] = [];
-
-  // Override write
-  res.write = function(
-    chunk: any,
-    encoding?: BufferEncoding | (() => void),
-    callback?: () => void
-  ): boolean {
-    if (Buffer.isBuffer(chunk)) {
-      chunks.push(chunk);
-    } else if (typeof chunk === 'string') {
-      chunks.push(Buffer.from(chunk, encoding as BufferEncoding));
-    }
-    return oldWrite.apply(res, arguments as any);
+  // Override json
+  res.json = function(body: any): Response {
+    console.log(`
+📤 Response (json):
+  - Duration: ${Date.now() - start}ms
+  - Status: ${res.statusCode}
+  - Body: ${JSON.stringify(body)}
+`);
+    return originalJson.apply(res, arguments);
   };
 
   // Override end
-  res.end = function(
-    chunk?: any,
-    encoding?: BufferEncoding | (() => void),
-    callback?: () => void
-  ): void {
-    if (chunk) {
-      if (Buffer.isBuffer(chunk)) {
-        chunks.push(chunk);
-      } else if (typeof chunk === 'string') {
-        chunks.push(Buffer.from(chunk, encoding as BufferEncoding));
-      }
-    }
-
-    const responseBody = Buffer.concat(chunks).toString('utf8');
-    const duration = Date.now() - start;
-
-    // Log response details
+  res.end = function(chunk: any, encoding?: string): Response {
     console.log(`
-📤 Response:
-  - Duration: ${duration}ms
+📤 Response (end):
+  - Duration: ${Date.now() - start}ms
   - Status: ${res.statusCode}
   - Headers: ${JSON.stringify(res.getHeaders())}
-  - Body: ${responseBody}
-  `);
-
-    oldEnd.apply(res, arguments as any);
+`);
+    return originalEnd.apply(res, arguments);
   };
 
   next();
@@ -73,6 +62,6 @@ export const errorLogger = (err: Error, req: Request, res: Response, next: NextF
   - Method: ${req.method}
   - Error: ${err.message}
   - Stack: ${err.stack}
-  `);
+`);
   next(err);
 };
