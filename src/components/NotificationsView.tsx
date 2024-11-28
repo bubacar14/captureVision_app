@@ -41,6 +41,11 @@ export default function NotificationsView({ weddings, onViewChange }: Notificati
         const notifications: NotificationItem[] = [];
         const weddingDate = new Date(wedding.date);
 
+        // Vérifier si les notifications sont définies
+        if (!wedding.notifications) {
+          return notifications;
+        }
+
         if (wedding.notifications.oneWeek) {
           const oneWeekBefore = addWeeks(weddingDate, -1);
           if (isAfter(oneWeekBefore, today)) {
@@ -102,7 +107,7 @@ export default function NotificationsView({ weddings, onViewChange }: Notificati
     <div className="space-y-6">
       <div className="bg-gray-800 rounded-xl p-6">
         <div className="flex items-center space-x-2 mb-6">
-          <Bell className="h-6 w-6 text-teal-500" />
+          <Bell className="h-6 w-6 text-blue-500" />
           <h2 className="text-2xl font-bold text-gray-100">
             {fr.notifications.title}
           </h2>
@@ -123,15 +128,15 @@ export default function NotificationsView({ weddings, onViewChange }: Notificati
                         e.stopPropagation();
                         onViewChange('calendar');
                       }}
-                      className="flex items-center space-x-2 hover:text-teal-400 transition-colors"
+                      className="flex items-center space-x-2 hover:text-blue-400 transition-colors"
                     >
-                      <Calendar className="h-4 w-4 text-teal-500" />
-                      <span className="font-medium text-teal-400">
+                      <Calendar className="h-4 w-4 text-blue-500" />
+                      <span className="font-medium text-blue-400">
                         {format(notifyDate, "d MMMM yyyy 'à' HH'h'mm", { locale: frLocale })}
                       </span>
                     </button>
                   </div>
-                  
+
                   <div className="text-lg font-semibold text-gray-100">
                     {wedding.clientName}
                   </div>

@@ -3,27 +3,28 @@ import { Wedding, WeddingInput, View } from './types';
 import Dashboard from './components/Dashboard';
 import CalendarView from './components/CalendarView';
 import WeddingDetails from './components/WeddingDetails';
-import NotificationsView from './components/NotificationsView';
-import SettingsView from './components/SettingsView';
 import NewWeddingForm from './components/NewWeddingForm';
 import Navbar from './components/layout/Navbar';
-import AccessCodeForm from './components/AccessCodeForm';
+import SettingsView from './components/SettingsView';
+import SecretCode from './components/SecretCode';
 import { ThemeProvider } from './context/ThemeContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(true); 
   const [view, setView] = useState<View>('dashboard');
   const [selectedWedding, setSelectedWedding] = useState<Wedding | null>(null);
   const [weddings, setWeddings] = useState<Wedding[]>([]);
   const [isNewWeddingModalOpen, setIsNewWeddingModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     console.log('App component mounted');
     console.log('Current API URL:', API_BASE_URL);
+    console.log('Current view:', view);
+    console.log('Environment variables:', import.meta.env);
     fetchWeddings();
   }, []);
 
@@ -42,170 +43,208 @@ function App() {
       });
 
       if (!response.ok) {
-        console.error('Response not OK:', {
+        const errorData = await response.json();
+        console.error('Error fetching weddings:', {
           status: response.status,
-          statusText: response.statusText
+          errorData
         });
-
-        let errorMessage = `Error: ${response.status} ${response.statusText}`;
-        try {
-          const errorData = await response.text();
-          console.error('Error data:', errorData);
-          errorMessage = errorData;
-        } catch (e) {
-          console.error('Could not parse error response:', e);
-        }
-
-        throw new Error(errorMessage);
+        throw new Error(errorData.message || `Erreur: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log('Received data:', data);
+      console.log('Received weddings data:', data);
 
-      if (!data.weddings || !Array.isArray(data.weddings)) {
-        console.error('Invalid data format:', data);
-        throw new Error('Invalid data format received from server');
+      if (!Array.isArray(data)) {
+        console.error('Invalid weddings data format:', data);
+        throw new Error('Format de données invalide reçu du serveur');
       }
 
-      setWeddings(data.weddings);
+      setWeddings(data);
+      
+      // If we have a selected wedding, verify it still exists in the new data
+      if (selectedWedding) {
+        const stillExists = data.some(w => w._id === selectedWedding._id);
+        if (!stillExists) {
+          console.log('Selected wedding no longer exists in data, resetting view');
+          setSelectedWedding(null);
+          setView('dashboard');
+        }
+      }
     } catch (err) {
-      console.error('Error fetching weddings:', err);
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue lors de la récupération des mariages');
+      console.error('Error in fetchWeddings:', err);
+      setError(err instanceof Error ? err.message : 'Erreur lors de la récupération des mariages');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <ThemeProvider>
-        <AccessCodeForm onSuccess={() => {
-          console.log('Authentication successful');
-          setIsAuthenticated(true);
-          console.log('Authentication state updated, should trigger useEffect');
-        }} />
-      </ThemeProvider>
-    );
-  }
-
-  const renderContent = () => {
-    if (isLoading) {
-      return (
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Chargement des mariages...</p>
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className="error-container">
-          <h2>Erreur</h2>
-          <p>{error}</p>
-          <button onClick={fetchWeddings}>Réessayer</button>
-        </div>
-      );
-    }
-
-    console.log('Rendering content, current view:', view);
-    console.log('Current weddings:', weddings);
-
-    switch (view) {
-      case 'dashboard':
-        return (
-          <Dashboard 
-            weddings={weddings} 
-            onWeddingSelect={(wedding) => {
-              console.log('Wedding selected:', wedding);
-              setSelectedWedding(wedding);
-              setView('details');
-            }} 
-          />
-        );
-      case 'calendar':
-        return <CalendarView 
-          weddings={weddings} 
-          onWeddingSelect={(wedding) => {
-            console.log('Wedding selected from calendar:', wedding);
-            setSelectedWedding(wedding);
-            setView('details');
-          }}
-        />;
-      case 'details':
-        return selectedWedding ? (
-          <WeddingDetails 
-            wedding={selectedWedding} 
-            onBack={() => setView('dashboard')}
-          />
-        ) : null;
-      case 'notifications':
-        return <NotificationsView weddings={weddings} onViewChange={setView} />;
-      case 'settings':
-        return <SettingsView />;
-      default:
-        return <Dashboard weddings={weddings} onWeddingSelect={setSelectedWedding} />;
-    }
-  };
-
-  const onSave = async (weddingData: WeddingInput) => {
+  const handleDeleteWedding = async (weddingId: string) => {
     try {
-      console.log('Saving wedding data:', weddingData);
-      console.log('API Base URL:', API_BASE_URL);
+      setError(null);
+      setIsLoading(true);
+      console.log('Attempting to delete wedding:', weddingId);
       
-      const response = await fetch(`${API_BASE_URL}/api/weddings`, {
-        method: 'POST',
+      // Log the current state
+      const currentWedding = weddings.find(w => w._id === weddingId);
+      console.log('Wedding to delete:', currentWedding);
+      
+      if (!currentWedding) {
+        console.error('Wedding not found in local state:', weddingId);
+        // Refresh the list to ensure our state is current
+        await fetchWeddings();
+        throw new Error('Mariage introuvable dans la liste actuelle. La page a été rafraîchie.');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/weddings/${weddingId}`, {
+        method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          ...weddingData,
-          date: new Date(weddingData.date),
-        }),
       });
 
+      const responseStatus = response.status;
+      console.log('Delete response status:', responseStatus);
+
       if (!response.ok) {
-        const errorData = await response.text();
-        console.error('Server error response:', errorData);
-        let errorMessage = 'Failed to save wedding';
+        let errorMessage;
         try {
-          errorMessage = errorData;
-        } catch (e) {
-          // Si le texte n'est pas du JSON valide, utiliser le texte brut
-          errorMessage = errorData || errorMessage;
+          const errorData = await response.json();
+          console.error('Delete wedding error response:', errorData);
+          
+          if (responseStatus === 404 || errorData.message === 'Wedding not found') {
+            // Wedding doesn't exist on server, clean up local state
+            setWeddings(prevWeddings => prevWeddings.filter(w => w._id !== weddingId));
+            if (selectedWedding?._id === weddingId) {
+              setSelectedWedding(null);
+              setView('dashboard');
+            }
+            errorMessage = 'Ce mariage a déjà été supprimé. La liste a été mise à jour.';
+          } else {
+            errorMessage = `Échec de la suppression: ${errorData.message || responseStatus}`;
+          }
+        } catch (jsonError) {
+          console.error('Error parsing delete response:', jsonError);
+          errorMessage = `Erreur lors de la suppression: ${responseStatus}`;
         }
+        
+        // Refresh the list to ensure we're in sync
+        await fetchWeddings();
         throw new Error(errorMessage);
       }
 
-      const savedWedding = await response.json();
-      console.log('Wedding saved successfully:', savedWedding);
+      // Success - update local state
+      setWeddings(prevWeddings => prevWeddings.filter(w => w._id !== weddingId));
+      if (selectedWedding?._id === weddingId) {
+        setSelectedWedding(null);
+        setView('dashboard');
+      }
       
-      setWeddings([...weddings, savedWedding]);
-      setIsNewWeddingModalOpen(false);
-      setView('dashboard');
-    } catch (error) {
-      console.error('Error saving wedding:', error);
-      alert(`Erreur lors de l'enregistrement du mariage: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      console.log('Wedding deleted successfully');
+      await fetchWeddings();
+    } catch (err) {
+      console.error('Error deleting wedding:', err);
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue lors de la suppression du mariage');
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const handleCreateWedding = async (weddingData: WeddingInput) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/weddings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(weddingData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create wedding');
+      }
+
+      const newWedding = await response.json();
+      setWeddings([...weddings, newWedding]);
+      setIsNewWeddingModalOpen(false);
+    } catch (err) {
+      console.error('Error creating wedding:', err);
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue lors de la création du mariage');
+    }
+  };
+
+  if (!isAuthenticated) {
+    return <SecretCode onSuccess={() => setIsAuthenticated(true)} />;
+  }
+
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-gray-900 text-white">
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
         <Navbar 
-          currentView={view}
+          currentView={view} 
           onViewChange={setView}
           onNewWedding={() => setIsNewWeddingModalOpen(true)}
         />
+        
         <main className="container mx-auto px-4 py-8">
-          {renderContent()}
+          {error && (
+            <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+
+          {view === 'dashboard' && (
+            isLoading ? (
+              <div className="flex justify-center items-center h-64">
+                <p className="text-gray-500">Chargement des mariages...</p>
+              </div>
+            ) : weddings.length > 0 ? (
+              <Dashboard
+                weddings={weddings}
+                onWeddingSelect={(wedding) => {
+                  setSelectedWedding(wedding);
+                  setView('details');
+                }}
+                isLoading={isLoading}
+              />
+            ) : (
+              <div className="flex justify-center items-center h-64">
+                <p className="text-gray-500">Aucun mariage trouvé</p>
+              </div>
+            )
+          )}
+
+          {view === 'calendar' && (
+            <CalendarView 
+              weddings={weddings} 
+              onWeddingSelect={(wedding) => {
+                setSelectedWedding(wedding);
+                setView('details');
+              }} 
+            />
+          )}
+
+          {view === 'details' && selectedWedding && (
+            <WeddingDetails
+              wedding={selectedWedding}
+              onBack={() => {
+                setSelectedWedding(null);
+                setView('dashboard');
+              }}
+              onDelete={handleDeleteWedding}
+            />
+          )}
+
+          {view === 'settings' && (
+            <SettingsView />
+          )}
+
+          {isNewWeddingModalOpen && (
+            <NewWeddingForm
+              onSave={handleCreateWedding}
+              onCancel={() => setIsNewWeddingModalOpen(false)}
+            />
+          )}
         </main>
-        {isNewWeddingModalOpen && (
-          <NewWeddingForm
-            onCancel={() => setIsNewWeddingModalOpen(false)}
-            onSave={onSave}
-          />
-        )}
       </div>
     </ThemeProvider>
   );

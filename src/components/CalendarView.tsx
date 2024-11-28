@@ -46,8 +46,8 @@ export default function CalendarView({ weddings, onWeddingSelect }: CalendarView
         <div className="mb-4 sm:mb-8">
           <div className="flex items-center justify-between mb-4 sm:mb-8">
             <div className="flex items-center space-x-2 sm:space-x-3">
-              <div className="bg-[#00B09C]/10 p-1.5 sm:p-2 rounded-xl">
-                <CalendarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-[#00B09C]" />
+              <div className="bg-[#3B82F6]/10 p-1.5 sm:p-2 rounded-xl">
+                <CalendarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-[#3B82F6]" />
               </div>
               <h2 className="text-xl sm:text-2xl font-bold text-white">
                 {format(currentDate, 'MMMM yyyy')}
@@ -56,13 +56,13 @@ export default function CalendarView({ weddings, onWeddingSelect }: CalendarView
             <div className="flex space-x-1 sm:space-x-2">
               <button
                 onClick={previousMonth}
-                className="p-2 sm:p-2.5 hover:bg-[#00B09C]/10 rounded-xl transition-all duration-300 text-[#9FA2A7] hover:text-[#00B09C]"
+                className="p-2 sm:p-2.5 hover:bg-[#3B82F6]/10 rounded-xl transition-all duration-300 text-[#9FA2A7] hover:text-[#3B82F6]"
               >
                 <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
               <button
                 onClick={nextMonth}
-                className="p-2 sm:p-2.5 hover:bg-[#00B09C]/10 rounded-xl transition-all duration-300 text-[#9FA2A7] hover:text-[#00B09C]"
+                className="p-2 sm:p-2.5 hover:bg-[#3B82F6]/10 rounded-xl transition-all duration-300 text-[#9FA2A7] hover:text-[#3B82F6]"
               >
                 <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
@@ -78,42 +78,40 @@ export default function CalendarView({ weddings, onWeddingSelect }: CalendarView
                 {day}
               </div>
             ))}
-            
+
             {days.map((day) => {
               const dayWeddings = getWeddingsForDay(day);
               const isCurrentMonth = isSameMonth(day, currentDate);
               const isCurrentDay = isToday(day);
-              
+
               return (
                 <div
                   key={day.toString()}
-                  className={`
-                    min-h-[60px] sm:min-h-[100px] p-1 sm:p-2 rounded-xl transition-all duration-300
+                  className={`min-h-[60px] sm:min-h-[100px] p-1 sm:p-2 rounded-xl transition-all duration-300
                     ${isCurrentMonth ? 'bg-[#101D25]' : 'bg-[#101D25]/50'}
-                    ${isCurrentDay ? 'ring-2 ring-[#00B09C]' : 'hover:ring-1 hover:ring-[#00B09C]/30'}
+                    ${isCurrentDay ? 'ring-2 ring-[#3B82F6]' : 'hover:ring-1 hover:ring-[#3B82F6]/30'}
                     ${!isCurrentMonth ? 'opacity-40' : ''}
                   `}
                 >
                   <div className="text-right mb-1 sm:mb-2">
                     <span
-                      className={`
-                        inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded-lg text-xs sm:text-sm font-medium
-                        ${isCurrentDay ? 'bg-[#00B09C] text-white' : 'text-[#9FA2A7]'}
-                        ${dayWeddings.length > 0 && !isCurrentDay ? 'bg-[#00B09C]/10 text-[#00B09C]' : ''}
+                      className={`inline-flex items-center justify-center w-5 h-5 sm:w-7 sm:h-7 rounded-lg text-xs sm:text-sm font-medium
+                        ${isCurrentDay ? 'bg-[#3B82F6] text-white' : 'text-[#9FA2A7]'}
+                        ${dayWeddings.length > 0 && !isCurrentDay ? 'bg-[#3B82F6]/10 text-[#3B82F6]' : ''}
                       `}
                     >
                       {format(day, 'd')}
                     </span>
                   </div>
-                  
+
                   <div className="space-y-1">
                     {dayWeddings.map((wedding) => (
                       <button
                         key={wedding._id}
                         onClick={() => onWeddingSelect(wedding)}
-                        className="w-full text-left p-1 sm:p-2 rounded-lg bg-[#00B09C]/10 hover:bg-[#00B09C]/20 transition-all duration-300 group"
+                        className="w-full text-left p-1 sm:p-2 rounded-lg bg-[#3B82F6]/10 hover:bg-[#3B82F6]/20 transition-all duration-300 group"
                       >
-                        <div className="text-xs sm:text-sm font-medium text-[#00B09C] group-hover:text-[#00B09C] truncate">
+                        <div className="text-xs sm:text-sm font-medium text-[#3B82F6] group-hover:text-[#3B82F6] truncate">
                           {wedding.clientName}
                         </div>
                         <div className="text-[10px] sm:text-xs text-[#9FA2A7] group-hover:text-[#9FA2A7] truncate">
@@ -131,8 +129,8 @@ export default function CalendarView({ weddings, onWeddingSelect }: CalendarView
 
       {weddings.length === 0 && (
         <div className="text-center bg-[#232D36] rounded-2xl p-4 sm:p-8 shadow-xl border border-[#9FA2A7]/10 backdrop-blur-sm">
-          <div className="bg-[#00B09C]/10 w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
-            <CalendarIcon className="h-6 w-6 sm:h-8 sm:w-8 text-[#00B09C]" />
+          <div className="bg-[#3B82F6]/10 w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
+            <CalendarIcon className="h-6 w-6 sm:h-8 sm:w-8 text-[#3B82F6]" />
           </div>
           <h3 className="text-lg sm:text-xl font-medium text-white mb-2">Aucun mariage planifié</h3>
           <p className="text-sm sm:text-base text-[#9FA2A7]">

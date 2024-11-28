@@ -1,16 +1,24 @@
-:root {
-  --color-dark-primary: #101D25;    /* Dark background */
-  --color-dark-secondary: #232D36;  /* Secondary dark */
-  --color-accent: #00B09C;         /* Accent teal */
-  --color-text: #9FA2A7;          /* Text gray */
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Couleurs principales */
+  --color-dark-primary: #101D25;    /* Dark background */
+  --color-dark-secondary: #232D36;  /* Secondary dark */
+  --color-accent: #3B82F6;         /* Blue-500 comme couleur principale */
+  --color-text: #9FA2A7;          /* Text gray */
+
+  /* États hover */
+  --color-hover-accent: #60A5FA;  /* Blue-400 pour le hover */
+  --color-hover-dark: #1A2730;
+
+  /* États des boutons */
+  --color-button-disabled: #4A5258;
+}
+
 @layer base {
   body {
-    @apply bg-dark-primary text-gray-text;
+    @apply bg-gray-900 text-gray-400;
   }
 }

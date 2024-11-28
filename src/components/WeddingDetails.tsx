@@ -1,13 +1,26 @@
 import { format } from 'date-fns';
-import { ArrowLeft, MapPin, Users, Clock, Bell, Phone, CalendarDays, FileText } from 'lucide-react';
+import { ArrowLeft, MapPin, Users, Clock, Bell, Phone, CalendarDays, FileText, Trash2 } from 'lucide-react';
 import { Wedding } from '../types';
 
 interface WeddingDetailsProps {
   wedding: Wedding;
   onBack: () => void;
+  onDelete: (id: string) => void;
 }
 
-export default function WeddingDetails({ wedding, onBack }: WeddingDetailsProps) {
+export default function WeddingDetails({ wedding, onBack, onDelete }: WeddingDetailsProps) {
+  const handleDelete = () => {
+    console.log('Attempting to delete wedding with data:', {
+      id: wedding._id,
+      clientName: wedding.clientName,
+      fullWedding: wedding
+    });
+    
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce mariage ? Cette action est irréversible.')) {
+      onDelete(wedding._id);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       <button
@@ -26,12 +39,12 @@ export default function WeddingDetails({ wedding, onBack }: WeddingDetailsProps)
                 {wedding.clientName}
               </h1>
               <div className="flex items-center text-gray-400">
-                <CalendarDays className="h-5 w-5 mr-2 text-teal-500" />
+                <CalendarDays className="h-5 w-5 mr-2 text-blue-500" />
                 <span>{format(new Date(wedding.date), 'EEEE, MMMM d, yyyy')}</span>
               </div>
             </div>
-            <div className="px-4 py-2 bg-teal-500 bg-opacity-10 rounded-lg">
-              <div className="text-sm font-medium text-teal-400">Wedding ID</div>
+            <div className="px-4 py-2 bg-blue-500 bg-opacity-10 rounded-lg">
+              <div className="text-sm font-medium text-blue-400">Wedding ID</div>
               <div className="text-lg font-mono text-gray-300">#{wedding._id}</div>
             </div>
           </div>
@@ -43,19 +56,19 @@ export default function WeddingDetails({ wedding, onBack }: WeddingDetailsProps)
               <h2 className="text-lg font-semibold text-gray-100 mb-4">Event Details</h2>
               <div className="space-y-4">
                 <div className="flex items-center text-gray-400">
-                  <Clock className="h-5 w-5 mr-3 text-teal-500" />
+                  <Clock className="h-5 w-5 mr-3 text-blue-500" />
                   <span>{format(new Date(wedding.date), 'h:mm a')}</span>
                 </div>
                 <div className="flex items-center text-gray-400">
-                  <MapPin className="h-5 w-5 mr-3 text-teal-500" />
+                  <MapPin className="h-5 w-5 mr-3 text-blue-500" />
                   <span>{wedding.venue}</span>
                 </div>
                 <div className="flex items-center text-gray-400">
-                  <Users className="h-5 w-5 mr-3 text-teal-500" />
+                  <Users className="h-5 w-5 mr-3 text-blue-500" />
                   <span>{wedding.guestCount} guests expected</span>
                 </div>
                 <div className="flex items-center text-gray-400">
-                  <Phone className="h-5 w-5 mr-3 text-teal-500" />
+                  <Phone className="h-5 w-5 mr-3 text-blue-500" />
                   <span>{wedding.phoneNumber}</span>
                 </div>
               </div>
@@ -73,26 +86,26 @@ export default function WeddingDetails({ wedding, onBack }: WeddingDetailsProps)
             <div className="bg-gray-700 bg-opacity-30 p-4 rounded-lg">
               <h2 className="text-lg font-semibold text-gray-100 mb-4">
                 <div className="flex items-center">
-                  <Bell className="h-5 w-5 mr-2 text-teal-500" />
+                  <Bell className="h-5 w-5 mr-2 text-blue-500" />
                   Notifications
                 </div>
               </h2>
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-gray-400">
                   <span>One week before</span>
-                  <span className={wedding.notifications.oneWeek ? 'text-teal-400' : 'text-gray-500'}>
+                  <span className={wedding.notifications.oneWeek ? 'text-blue-400' : 'text-gray-500'}>
                     {wedding.notifications.oneWeek ? 'Enabled' : 'Disabled'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-gray-400">
                   <span>Three days before</span>
-                  <span className={wedding.notifications.threeDays ? 'text-teal-400' : 'text-gray-500'}>
+                  <span className={wedding.notifications.threeDays ? 'text-blue-400' : 'text-gray-500'}>
                     {wedding.notifications.threeDays ? 'Enabled' : 'Disabled'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-gray-400">
                   <span>One day before</span>
-                  <span className={wedding.notifications.oneDay ? 'text-teal-400' : 'text-gray-500'}>
+                  <span className={wedding.notifications.oneDay ? 'text-blue-400' : 'text-gray-500'}>
                     {wedding.notifications.oneDay ? 'Enabled' : 'Disabled'}
                   </span>
                 </div>
@@ -102,13 +115,20 @@ export default function WeddingDetails({ wedding, onBack }: WeddingDetailsProps)
             <div className="bg-gray-700 bg-opacity-30 p-4 rounded-lg">
               <h2 className="text-lg font-semibold text-gray-100 mb-4">
                 <div className="flex items-center">
-                  <FileText className="h-5 w-5 mr-2 text-teal-500" />
+                  <FileText className="h-5 w-5 mr-2 text-blue-500" />
                   Quick Actions
                 </div>
               </h2>
               <div className="space-y-3">
-                <button className="w-full px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors">
+                <button className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
                   Edit Wedding Details
+                </button>
+                <button 
+                  onClick={handleDelete}
+                  className="w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center"
+                >
+                  <Trash2 className="h-5 w-5 mr-2" />
+                  Supprimer le mariage
                 </button>
                 <button className="w-full px-4 py-2 bg-gray-600 text-gray-200 rounded-lg hover:bg-gray-500 transition-colors">
                   Download Schedule

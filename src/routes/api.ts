@@ -2,6 +2,7 @@ import express from 'express';
 import type { Request, Response } from 'express';
 import Wedding from '../models/Wedding.js';
 import mongoose from 'mongoose';
+import { auth, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ const validateObjectId = (req: Request, res: Response, next: Function) => {
 };
 
 // Get all weddings with pagination
-router.get('/weddings', async (req: Request, res: Response) => {
+router.get('/weddings', auth, async (req: AuthRequest, res: Response) => {
   try {
     console.log('GET /weddings - Starting request');
     
@@ -50,69 +51,51 @@ router.get('/weddings', async (req: Request, res: Response) => {
       throw new Error('Invalid data format from database');
     }
 
-    // Transformer et valider chaque mariage
-    const formattedWeddings = weddings.map(wedding => {
-      try {
-        return {
-          ...wedding,
-          _id: wedding._id.toString(),
-          date: new Date(wedding.date).toISOString(),
-          createdAt: wedding.createdAt ? new Date(wedding.createdAt).toISOString() : null,
-          updatedAt: wedding.updatedAt ? new Date(wedding.updatedAt).toISOString() : null
-        };
-      } catch (err) {
-        console.error('Error formatting wedding:', wedding, err);
-        throw new Error(`Error formatting wedding data: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    // Transform dates to ISO string format
+    const formattedWeddings = weddings.map(wedding => ({
+      ...wedding,
+      date: wedding.date instanceof Date ? wedding.date.toISOString() : wedding.date,
+      _id: wedding._id.toString()
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: formattedWeddings,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit)
       }
     });
-
-    const response = {
-      weddings: formattedWeddings,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
-      hasMore: page < Math.ceil(total / limit)
-    };
-
-    console.log('Sending response:', {
-      totalWeddings: formattedWeddings.length,
-      totalPages: response.totalPages,
-      currentPage: page
-    });
-
-    return res.json(response);
-
-  } catch (err) {
-    console.error('Error in GET /weddings:', err);
-    
-    const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
-    const errorDetails = process.env.NODE_ENV === 'development' ? errorMessage : 'An error occurred';
-
-    return res.status(500).json({
+  } catch (error) {
+    console.error('Error in GET /weddings:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+    return res.status(500).json({ 
       error: 'Server error',
-      details: errorDetails
+      details: errorMessage
     });
   }
 });
 
 // Create a new wedding
-router.post('/weddings', async (req: Request, res: Response) => {
+router.post('/weddings', auth, async (req: AuthRequest, res: Response) => {
   try {
     const wedding = new Wedding(req.body);
     await wedding.save();
-    return res.status(201).json(wedding);
+    res.status(201).json(wedding);
   } catch (err) {
     console.error('Error creating wedding:', err);
     const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
-    return res.status(400).json({ 
-      error: 'Validation error',
+    res.status(400).json({ 
+      error: 'Invalid wedding data',
       details: errorMessage
     });
   }
 });
 
 // Get a specific wedding
-router.get('/weddings/:id', validateObjectId, async (req: Request, res: Response) => {
+router.get('/weddings/:id', [auth, validateObjectId], async (req: AuthRequest, res: Response) => {
   try {
     const wedding = await Wedding.findById(req.params.id);
     if (!wedding) {
@@ -130,32 +113,43 @@ router.get('/weddings/:id', validateObjectId, async (req: Request, res: Response
 });
 
 // Update a wedding
-router.put('/weddings/:id', validateObjectId, async (req: Request, res: Response) => {
+router.put('/weddings/:id', [auth, validateObjectId], async (req: AuthRequest, res: Response) => {
   try {
-    const wedding = await Wedding.findById(req.params.id);
+    const wedding = await Wedding.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
     if (!wedding) {
       return res.status(404).json({ message: 'Wedding not found' });
     }
-    Object.assign(wedding, req.body);
-    await wedding.save();
-    return res.json(wedding);
+    res.json(wedding);
   } catch (err) {
     console.error('Error updating wedding:', err);
     const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
-    return res.status(500).json({ 
-      error: 'Server error',
+    res.status(400).json({ 
+      error: 'Invalid update data',
       details: errorMessage
     });
   }
 });
 
 // Delete a wedding
-router.delete('/weddings/:id', validateObjectId, async (req: Request, res: Response) => {
+router.delete('/weddings/:id', [auth, validateObjectId], async (req: AuthRequest, res: Response) => {
   try {
-    const wedding = await Wedding.findByIdAndDelete(req.params.id);
-    if (!wedding) {
+    console.log('Attempting to delete wedding with ID:', req.params.id);
+    
+    // First check if the wedding exists
+    const existingWedding = await Wedding.findById(req.params.id);
+    if (!existingWedding) {
+      console.log('Wedding not found with ID:', req.params.id);
       return res.status(404).json({ message: 'Wedding not found' });
     }
+
+    // Proceed with deletion
+    const result = await Wedding.findByIdAndDelete(req.params.id);
+    console.log('Deletion result:', result);
+    
     return res.status(204).send();
   } catch (err) {
     console.error('Error deleting wedding:', err);
@@ -168,7 +162,7 @@ router.delete('/weddings/:id', validateObjectId, async (req: Request, res: Respo
 });
 
 // Search weddings
-router.get('/weddings/search', async (req: Request, res: Response) => {
+router.get('/weddings/search', auth, async (req: AuthRequest, res: Response) => {
   try {
     const { query, startDate, endDate, status } = req.query;
     const searchQuery: any = {};

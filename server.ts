@@ -1,17 +1,14 @@
-import express, { Request, Response, NextFunction } from 'express';
-import cors from 'cors';
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import Wedding from './models/Wedding';
-import weddingRoutes from './src/routes/api';
-import { requestLogger, errorLogger } from './src/middleware/logging.js';
+import express, { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+const cors = require('cors');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+const path = require('path');
+const Wedding = require('./models/Wedding.ts');
+const weddingRoutes = require('./src/routes/api');
+const authRoutes = require('./src/routes/auth');
+const { requestLogger, errorLogger } = require('./src/middleware/logging');
 
 dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -36,7 +33,7 @@ const allowedOrigins = process.env.CORS_ORIGINS
 console.log('Configured CORS origins:', allowedOrigins);
 
 app.use(cors({
-  origin: function(origin, callback) {
+  origin: function(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
     console.log('Request origin:', origin);
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
@@ -72,7 +69,7 @@ const connectDB = async () => {
 };
 
 // Handle MongoDB connection events
-mongoose.connection.on('error', (err) => {
+mongoose.connection.on('error', (err: Error) => {
   console.error('MongoDB connection error:', err);
 });
 
@@ -90,7 +87,8 @@ mongoose.connection.once('open', () => {
   console.log('Server is ready to accept requests');
 });
 
-// API Routes
+// Routes
+app.use('/api/auth', authRoutes);
 app.use('/api', weddingRoutes);
 
 // Serve static files in production
@@ -108,45 +106,19 @@ if (process.env.NODE_ENV === 'production') {
 app.use(errorLogger);
 
 // Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   console.error('Server error:', {
     message: err.message,
-    stack: err.stack,
-    name: err.name
+    stack: err.stack
   });
 
-  // Handle CORS errors
-  if (err.message === 'Not allowed by CORS') {
-    return res.status(403).json({
-      error: 'CORS Error',
-      message: 'Origin not allowed',
-      origin: req.headers.origin
-    });
-  }
-
-  // Handle MongoDB errors
-  if (err.name === 'MongoError' || err.name === 'MongoServerError') {
-    return res.status(500).json({
-      error: 'Database Error',
-      message: process.env.NODE_ENV === 'development' ? err.message : 'Database operation failed'
-    });
-  }
-
-  // Handle validation errors
-  if (err.name === 'ValidationError') {
-    return res.status(400).json({
-      error: 'Validation Error',
-      message: err.message
-    });
-  }
-
-  // Default error response
   res.status(500).json({
-    error: 'Server Error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    message: 'An unexpected error occurred',
+    error: process.env.NODE_ENV === 'production' ? {} : err
   });
-});
+};
+
+app.use(errorHandler);
 
 // Catch-all route for undefined routes
 app.use('*', (req, res) => {
