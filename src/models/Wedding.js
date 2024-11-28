@@ -1,15 +1,17 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
-const weddingSchema = new mongoose.Schema({
+const weddingSchema = new Schema({
   clientName: {
     type: String,
     required: [true, 'Le nom du client est requis'],
-    trim: true
+    trim: true,
+    minlength: [2, 'Le nom doit contenir au moins 2 caractères']
   },
   partnersName: {
     type: String,
     required: [true, 'Le nom du partenaire est requis'],
-    trim: true
+    trim: true,
+    minlength: [2, 'Le nom doit contenir au moins 2 caractères']
   },
   date: {
     type: Date,
@@ -24,7 +26,8 @@ const weddingSchema = new mongoose.Schema({
   venue: {
     type: String,
     required: [true, 'Le lieu du mariage est requis'],
-    trim: true
+    trim: true,
+    minlength: [2, 'Le lieu doit contenir au moins 2 caractères']
   },
   phoneNumber: {
     type: String,
@@ -56,7 +59,7 @@ const weddingSchema = new mongoose.Schema({
     required: [true, 'Le type de cérémonie est requis'],
     enum: {
       values: ['civil', 'religieux', 'traditionnel', 'autre'],
-      message: 'Type de cérémonie non valide'
+      message: '{VALUE} n\'est pas un type de cérémonie valide'
     }
   },
   status: {
@@ -64,27 +67,35 @@ const weddingSchema = new mongoose.Schema({
     required: true,
     enum: {
       values: ['planifié', 'en_cours', 'terminé', 'annulé'],
-      message: 'Statut non valide'
+      message: '{VALUE} n\'est pas un statut valide'
     },
     default: 'planifié'
   },
   notes: {
     type: String,
-    trim: true
+    trim: true,
+    maxlength: [1000, 'Les notes ne peuvent pas dépasser 1000 caractères']
   },
   services: [{
     name: {
       type: String,
-      required: [true, 'Le nom du service est requis']
+      required: [true, 'Le nom du service est requis'],
+      trim: true
     },
-    provider: String,
+    provider: {
+      type: String,
+      trim: true
+    },
     cost: {
       type: Number,
       min: [0, 'Le coût ne peut pas être négatif']
     },
     status: {
       type: String,
-      enum: ['à_faire', 'en_cours', 'terminé'],
+      enum: {
+        values: ['à_faire', 'en_cours', 'terminé'],
+        message: '{VALUE} n\'est pas un statut de service valide'
+      },
       default: 'à_faire'
     }
   }]
@@ -97,15 +108,34 @@ const weddingSchema = new mongoose.Schema({
       delete ret.__v;
       return ret;
     }
-  }
+  },
+  strict: 'throw'
 });
 
 // Middleware pour valider la date avant la sauvegarde
 weddingSchema.pre('save', function(next) {
-  if (this.date && this.date < new Date()) {
-    next(new Error('La date du mariage ne peut pas être dans le passé'));
+  try {
+    if (this.isModified('date')) {
+      const weddingDate = new Date(this.date);
+      if (isNaN(weddingDate.getTime())) {
+        throw new Error('Date de mariage invalide');
+      }
+      if (weddingDate < new Date()) {
+        throw new Error('La date du mariage ne peut pas être dans le passé');
+      }
+    }
+
+    if (this.isModified('services')) {
+      const totalCost = this.services.reduce((sum, service) => sum + (service.cost || 0), 0);
+      if (totalCost > this.budget) {
+        throw new Error('Le coût total des services dépasse le budget');
+      }
+    }
+
+    next();
+  } catch (error) {
+    next(error);
   }
-  next();
 });
 
 // Méthode pour calculer le budget restant
@@ -114,6 +144,11 @@ weddingSchema.methods.calculateRemainingBudget = function() {
   return this.budget - spentBudget;
 };
 
-const Wedding = mongoose.model('Wedding', weddingSchema);
+// Index pour améliorer les performances des recherches
+weddingSchema.index({ clientName: 1, partnersName: 1 });
+weddingSchema.index({ date: 1 });
+weddingSchema.index({ status: 1 });
+
+const Wedding = model('Wedding', weddingSchema);
 
 export default Wedding;
