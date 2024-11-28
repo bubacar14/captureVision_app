@@ -6,6 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import Wedding from './models/Wedding';
 import weddingRoutes from './src/routes/api';
+import { requestLogger, errorLogger } from './src/middleware/logging.js';
 
 dotenv.config();
 
@@ -15,27 +16,41 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
+// Middleware de logging
+app.use(requestLogger);
+
+// Middleware standard
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Configuration CORS
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'https://capturevision-app.onrender.com'
-];
+const allowedOrigins = process.env.CORS_ORIGINS 
+  ? process.env.CORS_ORIGINS.split(',')
+  : [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'https://capturevision-app.onrender.com',
+      'https://capturevision-app.onrender.com/'
+    ];
+
+console.log('Configured CORS origins:', allowedOrigins);
 
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    console.log('Request origin:', origin);
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
       console.warn('Blocked by CORS:', origin);
-      callback(null, false);
+      callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // MongoDB Connection
@@ -89,12 +104,56 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
+// Error logging middleware
+app.use(errorLogger);
+
 // Error handling middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error('Server error:', err);
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Server error:', {
+    message: err.message,
+    stack: err.stack,
+    name: err.name
+  });
+
+  // Handle CORS errors
+  if (err.message === 'Not allowed by CORS') {
+    return res.status(403).json({
+      error: 'CORS Error',
+      message: 'Origin not allowed',
+      origin: req.headers.origin
+    });
+  }
+
+  // Handle MongoDB errors
+  if (err.name === 'MongoError' || err.name === 'MongoServerError') {
+    return res.status(500).json({
+      error: 'Database Error',
+      message: process.env.NODE_ENV === 'development' ? err.message : 'Database operation failed'
+    });
+  }
+
+  // Handle validation errors
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({
+      error: 'Validation Error',
+      message: err.message
+    });
+  }
+
+  // Default error response
   res.status(500).json({
-    error: 'Server error',
-    details: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
+    error: 'Server Error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+
+// Catch-all route for undefined routes
+app.use('*', (req, res) => {
+  console.warn(`Route not found: ${req.originalUrl}`);
+  res.status(404).json({
+    error: 'Not Found',
+    message: `Route ${req.originalUrl} not found`
   });
 });
 

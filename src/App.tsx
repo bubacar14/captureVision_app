@@ -28,44 +28,49 @@ function App() {
   }, []);
 
   const fetchWeddings = async () => {
-    setIsLoading(true);
-    setError(null);
     try {
-      const apiUrl = `${API_BASE_URL}/api/weddings`;
-      console.log('Fetching weddings from:', apiUrl);
-      
-      const response = await fetch(apiUrl);
-      const responseText = await response.text();
-      console.log('Raw response:', responseText);
+      setIsLoading(true);
+      setError(null);
+      console.log('Fetching weddings from:', `${API_BASE_URL}/api/weddings`);
+
+      const response = await fetch(`${API_BASE_URL}/api/weddings`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
 
       if (!response.ok) {
-        console.error('Error response:', {
+        console.error('Response not OK:', {
           status: response.status,
-          statusText: response.statusText,
-          body: responseText
+          statusText: response.statusText
         });
-        throw new Error(`HTTP error! status: ${response.status}`);
+
+        let errorMessage = `Error: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.text();
+          console.error('Error data:', errorData);
+          errorMessage = errorData;
+        } catch (e) {
+          console.error('Could not parse error response:', e);
+        }
+
+        throw new Error(errorMessage);
       }
 
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        console.error('Failed to parse response as JSON:', responseText);
-        throw new Error('Invalid JSON response from server');
+      const data = await response.json();
+      console.log('Received data:', data);
+
+      if (!data.weddings || !Array.isArray(data.weddings)) {
+        console.error('Invalid data format:', data);
+        throw new Error('Invalid data format received from server');
       }
 
-      console.log('Parsed data:', data);
-      
-      if (data && Array.isArray(data.weddings)) {
-        setWeddings(data.weddings);
-      } else {
-        console.error('Unexpected data format:', data);
-        throw new Error('Données reçues dans un format inattendu');
-      }
-    } catch (error) {
-      console.error('Error fetching weddings:', error);
-      setError(error instanceof Error ? error.message : 'Erreur lors de la récupération des mariages');
+      setWeddings(data.weddings);
+    } catch (err) {
+      console.error('Error fetching weddings:', err);
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue lors de la récupération des mariages');
     } finally {
       setIsLoading(false);
     }
@@ -86,23 +91,19 @@ function App() {
   const renderContent = () => {
     if (isLoading) {
       return (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Chargement des mariages...</p>
         </div>
       );
     }
 
     if (error) {
       return (
-        <div className="p-4 text-red-500 bg-red-100 rounded-lg">
-          <p className="font-semibold">Erreur:</p>
+        <div className="error-container">
+          <h2>Erreur</h2>
           <p>{error}</p>
-          <button 
-            onClick={fetchWeddings}
-            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Réessayer
-          </button>
+          <button onClick={fetchWeddings}>Réessayer</button>
         </div>
       );
     }
@@ -168,8 +169,7 @@ function App() {
         console.error('Server error response:', errorData);
         let errorMessage = 'Failed to save wedding';
         try {
-          const parsedError = JSON.parse(errorData);
-          errorMessage = parsedError.message || parsedError.error || errorMessage;
+          errorMessage = errorData;
         } catch (e) {
           // Si le texte n'est pas du JSON valide, utiliser le texte brut
           errorMessage = errorData || errorMessage;
