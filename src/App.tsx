@@ -18,112 +18,53 @@ function App() {
   const [selectedWedding, setSelectedWedding] = useState<Wedding | null>(null);
   const [weddings, setWeddings] = useState<Wedding[]>([]);
   const [isNewWeddingModalOpen, setIsNewWeddingModalOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     console.log('App component mounted');
-    console.log('Authentication status:', isAuthenticated);
     console.log('Current API URL:', API_BASE_URL);
-    
-    // Toujours charger les mariages au démarrage
-    if (isAuthenticated) {
-      console.log('User is authenticated, fetching weddings...');
-      fetchWeddings();
-    } else {
-      console.log('User is not authenticated yet');
-    }
-  }, [isAuthenticated]);
+    fetchWeddings();
+  }, []);
 
   const fetchWeddings = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      console.log('\n=== Fetching Weddings ===');
-      console.log('Time:', new Date().toISOString());
-      console.log('API Base URL:', API_BASE_URL);
+      console.log('Fetching weddings from:', `${API_BASE_URL}/api/weddings`);
       
       const response = await fetch(`${API_BASE_URL}/api/weddings`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
-        },
-        credentials: 'include'
+        }
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
-      // Récupérer le texte brut de la réponse d'abord
-      const rawText = await response.text();
-      console.log('Raw response text:', rawText);
-
-      // Vérifier si la réponse est vide
-      if (!rawText.trim()) {
-        throw new Error('Server returned empty response');
-      }
-
-      // Essayer de parser le JSON
-      let data;
-      try {
-        data = JSON.parse(rawText);
-      } catch (e) {
-        console.error('Failed to parse response as JSON:', {
-          rawText,
-          error: e instanceof Error ? e.message : String(e),
-          responseStatus: response.status,
-          responseHeaders: Object.fromEntries(response.headers.entries())
-        });
-        throw new Error('Server response was not valid JSON');
-      }
-
-      // Si la réponse n'est pas OK, analyser l'erreur
       if (!response.ok) {
-        let errorDetails;
-        try {
-          errorDetails = JSON.parse(rawText);
-        } catch (e) {
-          errorDetails = { error: rawText };
-        }
-        
-        throw new Error(JSON.stringify({
+        const errorText = await response.text();
+        console.error('Error response:', {
           status: response.status,
           statusText: response.statusText,
-          details: errorDetails
-        }));
-      }
-
-      if (!Array.isArray(data)) {
-        console.error('Received data is not an array:', data);
-        throw new Error('Invalid data format received');
-      }
-
-      const processedData = data.map(wedding => ({
-        ...wedding,
-        date: new Date(wedding.date)
-      }));
-
-      console.log('Processed weddings:', processedData);
-      setWeddings(processedData);
-      console.log('=== Fetch Complete ===\n');
-
-    } catch (error) {
-      console.error('\n=== Error in fetchWeddings ===');
-      console.error('Time:', new Date().toISOString());
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          message: error.message,
-          name: error.name,
-          stack: error.stack
+          body: errorText
         });
-        try {
-          const parsedError = JSON.parse(error.message);
-          console.error('Parsed error:', parsedError);
-        } catch (e) {
-          console.error('Raw error message:', error.message);
-        }
-      } else {
-        console.error('Unknown error:', error);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      console.error('=== Error End ===\n');
-      setWeddings([]);
+
+      const data = await response.json();
+      console.log('Weddings data received:', data);
+      
+      if (data && data.weddings) {
+        setWeddings(data.weddings);
+      } else {
+        console.error('Unexpected data format:', data);
+        setError('Données reçues dans un format inattendu');
+      }
+    } catch (error) {
+      console.error('Error fetching weddings:', error);
+      setError('Erreur lors de la récupération des mariages');
+    } finally {
+      setIsLoading(false);
     }
   };
 
