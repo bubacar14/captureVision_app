@@ -13,7 +13,7 @@ import { ThemeProvider } from './context/ThemeContext';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(true); // Authentifié par défaut
+  const [isAuthenticated, setIsAuthenticated] = useState(true); 
   const [view, setView] = useState<View>('dashboard');
   const [selectedWedding, setSelectedWedding] = useState<Wedding | null>(null);
   const [weddings, setWeddings] = useState<Wedding[]>([]);
@@ -69,7 +69,6 @@ function App() {
   };
 
   if (!isAuthenticated) {
-    console.log('Rendering login form...');
     return (
       <ThemeProvider>
         <AccessCodeForm onSuccess={() => {
@@ -81,11 +80,30 @@ function App() {
     );
   }
 
-  console.log('Rendering authenticated content...');
-  console.log('Current view:', view);
-  console.log('Number of weddings:', weddings.length);
-
   const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="p-4 text-red-500 bg-red-100 rounded-lg">
+          <p className="font-semibold">Erreur:</p>
+          <p>{error}</p>
+          <button 
+            onClick={fetchWeddings}
+            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Réessayer
+          </button>
+        </div>
+      );
+    }
+
     console.log('Rendering content, current view:', view);
     console.log('Current weddings:', weddings);
 
