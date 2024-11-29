@@ -41,8 +41,16 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
   };
 
   // Override end
-  const originalEndFunction = res.end;
-  res.end = function(chunk?: any, encoding?: BufferEncoding | (() => void), callback?: () => void): Response {
+  type EndCallback = () => void;
+  type EndFunction = {
+    (cb?: EndCallback): Response;
+    (chunk: any, cb?: EndCallback): Response;
+    (chunk: any, encoding: BufferEncoding, cb?: EndCallback): Response;
+  };
+
+  const originalEndFunction = originalEnd as EndFunction;
+
+  res.end = function(chunk?: any, encoding?: string | EndCallback, cb?: EndCallback): Response {
     console.log(`
 📤 Response (end):
   - Duration: ${Date.now() - start}ms
@@ -52,21 +60,21 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
 
     // Handle the case where encoding is actually the callback
     if (typeof encoding === 'function') {
-      return originalEndFunction.call(res, chunk, encoding);
+      return originalEndFunction(chunk, encoding);
     }
 
     // Handle the case with all three parameters
-    if (callback) {
-      return originalEndFunction.call(res, chunk, encoding, callback);
+    if (cb) {
+      return originalEndFunction(chunk, encoding as BufferEncoding, cb);
     }
 
     // Handle the case with just chunk and encoding
     if (encoding) {
-      return originalEndFunction.call(res, chunk, encoding);
+      return originalEndFunction(chunk, encoding as BufferEncoding);
     }
 
     // Handle the case with just chunk or no parameters
-    return originalEndFunction.call(res, chunk);
+    return originalEndFunction(chunk);
   };
 
   next();
