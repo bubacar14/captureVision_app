@@ -2,6 +2,7 @@ import express from 'express';
 import { Request, Response } from 'express';
 import User from '../models/User';
 import { generateToken } from '../middleware/auth';
+import { Types } from 'mongoose';
 
 export const router = express.Router();
 
@@ -26,7 +27,8 @@ router.post('/register', async (req: Request, res: Response) => {
     await user.save();
 
     // Generate token
-    const token = generateToken(user._id.toString());
+    const userId = user._id as Types.ObjectId;
+    const token = generateToken(userId.toString());
 
     res.status(201).json({
       message: 'User created successfully',
@@ -62,7 +64,8 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // Generate token
-    const token = generateToken(user._id.toString());
+    const userId = user._id as Types.ObjectId;
+    const token = generateToken(userId.toString());
 
     res.json({
       message: 'Login successful',
