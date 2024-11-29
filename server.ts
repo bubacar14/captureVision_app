@@ -23,7 +23,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const port = process.env.PORT || 3000;
 
 console.log('Environment:', process.env.NODE_ENV);
 console.log('MongoDB URI:', process.env.MONGODB_URI);
@@ -130,10 +130,11 @@ app.use(errorHandler);
 // Start server
 const startServer = async () => {
   try {
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
+    app.listen(port, '0.0.0.0', () => {
+      console.log(`Server is running on port ${port}`);
       console.log('Environment:', process.env.NODE_ENV);
-      console.log('MongoDB Status:', mongoose.connection.readyState === 1 ? 'connected' : 'disconnected');
+      console.log('MongoDB URI:', process.env.MONGODB_URI?.substring(0, 20) + '...');
+      console.log('CORS Origins:', process.env.CORS_ORIGINS);
     });
   } catch (err) {
     console.error('Error starting server:', err);
