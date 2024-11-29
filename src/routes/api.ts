@@ -4,7 +4,7 @@ import Wedding from '../models/Wedding.js';
 import mongoose from 'mongoose';
 import { auth, AuthRequest } from '../middleware/auth';
 
-const router = express.Router();
+export const router = express.Router();
 
 // Middleware de validation des IDs MongoDB
 const validateObjectId = (req: Request, res: Response, next: Function) => {
@@ -195,5 +195,3 @@ router.get('/weddings/search', auth, async (req: AuthRequest, res: Response) => 
     });
   }
 });
-
-export default router;
