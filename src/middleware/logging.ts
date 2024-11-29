@@ -26,7 +26,7 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
   - Status: ${res.statusCode}
   - Body: ${JSON.stringify(body)}
 `);
-    return originalSend.apply(res, arguments);
+    return originalSend.call(res, body);
   };
 
   // Override json
@@ -37,18 +37,18 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
   - Status: ${res.statusCode}
   - Body: ${JSON.stringify(body)}
 `);
-    return originalJson.apply(res, arguments);
+    return originalJson.call(res, body);
   };
 
   // Override end
-  res.end = function(chunk: any, encoding?: string): Response {
+  res.end = function(chunk: any, encoding?: BufferEncoding, callback?: () => void): Response {
     console.log(`
 📤 Response (end):
   - Duration: ${Date.now() - start}ms
   - Status: ${res.statusCode}
   - Headers: ${JSON.stringify(res.getHeaders())}
 `);
-    return originalEnd.apply(res, arguments);
+    return originalEnd.call(res, chunk, encoding, callback);
   };
 
   next();
@@ -59,7 +59,6 @@ export const errorLogger = (err: Error, req: Request, res: Response, next: NextF
 ❌ Error:
   - Timestamp: ${new Date().toISOString()}
   - URL: ${req.url}
-  - Method: ${req.method}
   - Error: ${err.message}
   - Stack: ${err.stack}
 `);

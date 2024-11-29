@@ -11,8 +11,8 @@ const __dirname = dirname(__filename);
 
 // Import des routes et modèles
 import Wedding from './models/Wedding.js';
-import { router as weddingRoutes } from './src/routes/api.js';
-import { router as authRoutes } from './src/routes/auth.js';
+import weddingRoutes from './src/routes/api.js';
+import authRoutes from './src/routes/auth.js';
 import { requestLogger, errorLogger } from './src/middleware/logging.js';
 
 dotenv.config();

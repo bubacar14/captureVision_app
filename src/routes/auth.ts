@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import User from '../models/User';
 import { generateToken } from '../middleware/auth';
 
-const router = express.Router();
+export const router = express.Router();
 
 // Register new user
 router.post('/register', async (req: Request, res: Response) => {
@@ -26,7 +26,7 @@ router.post('/register', async (req: Request, res: Response) => {
     await user.save();
 
     // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user._id.toString());
 
     res.status(201).json({
       message: 'User created successfully',
@@ -62,7 +62,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user._id.toString());
 
     res.json({
       message: 'Login successful',
@@ -76,8 +76,6 @@ router.post('/login', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Error logging in' });
+    res.status(500).json({ message: 'Error during login' });
   }
 });
-
-export default router;
