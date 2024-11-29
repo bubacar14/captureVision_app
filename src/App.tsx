@@ -33,13 +33,23 @@ function App() {
     try {
       setIsLoading(true);
       setError(null);
+      
+      // Vérifier si l'utilisateur est authentifié
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Veuillez vous connecter pour voir les mariages');
+        setIsLoading(false);
+        return;
+      }
+
       console.log('Fetching weddings from:', `${API_BASE_URL}/api/weddings`);
 
       const response = await fetch(`${API_BASE_URL}/api/weddings`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
       });
 
@@ -49,22 +59,16 @@ function App() {
           status: response.status,
           errorData
         });
-        throw new Error(errorData.message || `Erreur: ${response.status} ${response.statusText}`);
+        throw new Error(errorData.message || 'Failed to fetch weddings');
       }
 
       const data = await response.json();
-      console.log('Received weddings data:', data);
-
-      if (!Array.isArray(data)) {
-        console.error('Invalid weddings data format:', data);
-        throw new Error('Format de données invalide reçu du serveur');
-      }
-
-      setWeddings(data);
+      console.log('Fetched weddings:', data);
+      setWeddings(data.data || []);
       
       // If we have a selected wedding, verify it still exists in the new data
       if (selectedWedding) {
-        const stillExists = data.some(w => w._id === selectedWedding._id);
+        const stillExists = data.data.some(w => w._id === selectedWedding._id);
         if (!stillExists) {
           console.log('Selected wedding no longer exists in data, resetting view');
           setSelectedWedding(null);
@@ -73,7 +77,7 @@ function App() {
       }
     } catch (err) {
       console.error('Error in fetchWeddings:', err);
-      setError(err instanceof Error ? err.message : 'Erreur lors de la récupération des mariages');
+      setError(err instanceof Error ? err.message : 'Failed to fetch weddings');
     } finally {
       setIsLoading(false);
     }
@@ -96,10 +100,18 @@ function App() {
         throw new Error('Mariage introuvable dans la liste actuelle. La page a été rafraîchie.');
       }
 
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Veuillez vous connecter pour supprimer un mariage');
+        setIsLoading(false);
+        return;
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/weddings/${weddingId}`, {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
       });
 
@@ -152,10 +164,17 @@ function App() {
 
   const handleCreateWedding = async (weddingData: WeddingInput) => {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Veuillez vous connecter pour créer un mariage');
+        return;
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/weddings`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(weddingData),
       });
@@ -193,11 +212,19 @@ function App() {
       
       console.log('Data being sent to server:', dataToUpdate);
       
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Veuillez vous connecter pour mettre à jour un mariage');
+        setIsLoading(false);
+        return;
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/weddings/${mongoId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(dataToUpdate)
       });

@@ -30,26 +30,26 @@ app.use(express.urlencoded({ extended: true }));
 // Configuration CORS
 const allowedOrigins = process.env.CORS_ORIGINS 
   ? process.env.CORS_ORIGINS.split(',')
-  : [
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'https://capturevision-app.onrender.com',
-      'https://capturevision-app.onrender.com/'
-    ];
+  : ['http://localhost:5173', 'http://localhost:3000', 'https://capturevision-app.onrender.com'];
 
-console.log('Configured CORS origins:', allowedOrigins);
+console.log('Allowed CORS origins:', allowedOrigins);
 
 app.use(cors({
-  origin: function(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
-    console.log('Request origin:', origin);
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+  origin: function(origin, callback) {
+    console.log('Incoming request from origin:', origin);
     
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
-      callback(null, true);
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      console.log('Allowing request with no origin');
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      console.log('Origin allowed:', origin);
+      return callback(null, true);
     } else {
-      console.warn('Blocked by CORS:', origin);
-      callback(new Error('Not allowed by CORS'));
+      console.log('Origin not allowed:', origin);
+      return callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
@@ -110,21 +110,26 @@ mongoose.connection.once('open', () => {
   console.log('Server is ready to accept requests');
 });
 
-// Middleware pour servir les fichiers statiques
-app.use(express.static(path.join(__dirname, 'dist')));
-
 // Routes API
 app.use('/api', weddingRoutes);
 app.use('/api/auth', authRoutes);
 
+// Serve static files from the React app
+if (process.env.NODE_ENV === 'production') {
+  const clientBuildPath = path.join(__dirname, 'dist');
+  console.log('Serving static files from:', clientBuildPath);
+  
+  app.use(express.static(clientBuildPath));
+  
+  // Handle React routing, return all requests to React app
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(clientBuildPath, 'index.html'));
+  });
+}
+
 // Route pour le health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
-});
-
-// Toutes les autres routes renvoient vers l'application React
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // Error logging middleware
