@@ -18,11 +18,13 @@ const validateObjectId = (req: Request, res: Response, next: Function) => {
 router.get('/weddings', auth, async (req: AuthRequest, res: Response) => {
   try {
     console.log('GET /weddings - Starting request');
+    console.log('User:', req.user);
     
     // Vérifier la connexion MongoDB
     if (mongoose.connection.readyState !== 1) {
       console.error('MongoDB connection is not ready');
       return res.status(500).json({
+        success: false,
         error: 'Database connection error',
         details: 'The database connection is not ready'
       });
@@ -48,7 +50,10 @@ router.get('/weddings', auth, async (req: AuthRequest, res: Response) => {
 
     if (!Array.isArray(weddings)) {
       console.error('Weddings is not an array:', weddings);
-      throw new Error('Invalid data format from database');
+      return res.status(500).json({
+        success: false,
+        error: 'Invalid data format from database'
+      });
     }
 
     // Transform dates to ISO string format
@@ -57,6 +62,8 @@ router.get('/weddings', auth, async (req: AuthRequest, res: Response) => {
       date: wedding.date instanceof Date ? wedding.date.toISOString() : wedding.date,
       _id: wedding._id.toString()
     }));
+
+    console.log('Sending response with weddings:', formattedWeddings.length);
 
     return res.status(200).json({
       success: true,
@@ -70,10 +77,10 @@ router.get('/weddings', auth, async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error('Error in GET /weddings:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-    return res.status(500).json({ 
-      error: 'Server error',
-      details: errorMessage
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });

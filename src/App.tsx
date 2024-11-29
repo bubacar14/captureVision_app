@@ -37,14 +37,17 @@ function App() {
       // Vérifier si l'utilisateur est authentifié
       const token = localStorage.getItem('token');
       if (!token) {
+        console.log('No authentication token found');
         setError('Veuillez vous connecter pour voir les mariages');
         setIsLoading(false);
         return;
       }
 
-      console.log('Fetching weddings from:', `${API_BASE_URL}/api/weddings`);
+      const apiUrl = `${API_BASE_URL}/api/weddings`;
+      console.log('Fetching weddings from:', apiUrl);
+      console.log('Using token:', token.substring(0, 10) + '...');
 
-      const response = await fetch(`${API_BASE_URL}/api/weddings`, {
+      const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -53,18 +56,23 @@ function App() {
         }
       });
 
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Error fetching weddings:', {
-          status: response.status,
-          errorData
-        });
-        throw new Error(errorData.message || 'Failed to fetch weddings');
+        console.error('Error response:', errorData);
+        throw new Error(errorData.message || `Error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log('Fetched weddings:', data);
-      setWeddings(data.data || []);
+      console.log('Received data:', data);
+
+      if (!data.data || !Array.isArray(data.data)) {
+        console.error('Invalid data format:', data);
+        throw new Error('Format de données invalide reçu du serveur');
+      }
+
+      setWeddings(data.data);
       
       // If we have a selected wedding, verify it still exists in the new data
       if (selectedWedding) {
@@ -77,7 +85,7 @@ function App() {
       }
     } catch (err) {
       console.error('Error in fetchWeddings:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch weddings');
+      setError(err instanceof Error ? err.message : 'Erreur lors de la récupération des mariages');
     } finally {
       setIsLoading(false);
     }

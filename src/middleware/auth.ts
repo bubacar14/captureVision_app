@@ -1,35 +1,53 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import User, { IUser } from '../models/User';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-
+// Extend Request type to include user
 export interface AuthRequest extends Request {
-  user?: IUser;
+  user?: any;
 }
 
 export const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return res.status(401).json({ message: 'Authentication required' });
+    console.log('Auth middleware - Headers:', req.headers);
+    
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      console.log('No authorization header found');
+      return res.status(401).json({
+        success: false,
+        error: 'No authorization token provided'
+      });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-    const user = await User.findById(decoded.userId);
-
-    if (!user) {
-      return res.status(401).json({ message: 'User not found' });
+    if (!authHeader.startsWith('Bearer ')) {
+      console.log('Invalid authorization header format');
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid authorization header format'
+      });
     }
 
-    req.user = user;
-    next();
+    const token = authHeader.split(' ')[1];
+    console.log('Token received:', token.substring(0, 10) + '...');
+
+    try {
+      const decoded = jwt.verify(token, 'your-secret-key');
+      console.log('Token decoded successfully:', decoded);
+      req.user = decoded;
+      next();
+    } catch (error) {
+      console.error('Token verification failed:', error);
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid token'
+      });
+    }
   } catch (error) {
-    res.status(401).json({ message: 'Invalid authentication token' });
+    console.error('Auth middleware error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Authentication error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
-};
-
-export const generateToken = (userId: string): string => {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '24h' });
 };

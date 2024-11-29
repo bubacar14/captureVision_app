@@ -15,10 +15,19 @@ import { router as weddingRoutes } from './src/routes/api.js';
 import { router as authRoutes } from './src/routes/auth.js';
 import { requestLogger, errorLogger } from './src/middleware/logging.js';
 
-dotenv.config();
+// Load environment variables
+if (process.env.NODE_ENV === 'production') {
+  dotenv.config({ path: '.env.production' });
+} else {
+  dotenv.config();
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+console.log('Environment:', process.env.NODE_ENV);
+console.log('MongoDB URI:', process.env.MONGODB_URI);
+console.log('API URL:', process.env.VITE_API_URL);
 
 // Middleware de logging
 app.use(requestLogger);
@@ -57,64 +66,41 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// MongoDB Connection
-const MAX_RETRIES = 5;
-const RETRY_INTERVAL = 5000; // 5 seconds
-let retryCount = 0;
-
+// Connect to MongoDB
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wedding-planner';
+    const mongoURI = process.env.MONGODB_URI;
     if (!mongoURI) {
-      throw new Error('MongoDB URI is not defined in environment variables');
+      throw new Error('MongoDB URI is not defined');
     }
 
     console.log('Connecting to MongoDB...');
-    await mongoose.connect(mongoURI, {
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-    });
-
-    console.log('MongoDB connected successfully');
-    retryCount = 0; // Reset retry count on successful connection
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    
-    if (retryCount < MAX_RETRIES) {
-      retryCount++;
-      console.log(`Retrying connection (${retryCount}/${MAX_RETRIES}) in ${RETRY_INTERVAL/1000} seconds...`);
-      setTimeout(connectDB, RETRY_INTERVAL);
-    } else {
-      console.error('Max retry attempts reached. Exiting...');
-      process.exit(1);
-    }
+    await mongoose.connect(mongoURI);
+    console.log('MongoDB Connected...');
+  } catch (err) {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
   }
 };
 
-// Handle MongoDB connection events
-mongoose.connection.on('error', (err: Error) => {
-  console.error('MongoDB connection error:', err);
-});
-
-mongoose.connection.on('disconnected', () => {
-  console.warn('MongoDB disconnected. Attempting to reconnect...');
-  connectDB();
-});
-
-mongoose.connection.on('reconnected', () => {
-  console.log('MongoDB reconnected');
-});
-
-mongoose.connection.once('open', () => {
-  console.log('Connected to MongoDB');
-  console.log('Server is ready to accept requests');
-});
+connectDB();
 
 // Routes API
 app.use('/api', weddingRoutes);
 app.use('/api/auth', authRoutes);
 
-// Serve static files from the React app
+// Route pour le health check
+app.get('/api/health', (req, res) => {
+  const health = {
+    uptime: process.uptime(),
+    message: 'OK',
+    timestamp: Date.now(),
+    mongoStatus: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  };
+  res.status(200).json(health);
+});
+
+// Serve static files in production
 if (process.env.NODE_ENV === 'production') {
   const clientBuildPath = path.join(__dirname, 'dist');
   console.log('Serving static files from:', clientBuildPath);
@@ -127,24 +113,17 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Route pour le health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
-
 // Error logging middleware
 app.use(errorLogger);
 
 // Error handling middleware
 const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
-  console.error('Server error:', {
-    message: err.message,
-    stack: err.stack
-  });
-
+  console.error('Error:', err);
   res.status(500).json({
-    message: 'An unexpected error occurred',
-    error: process.env.NODE_ENV === 'production' ? {} : err
+    error: {
+      message: err.message || 'Internal Server Error',
+      status: 500
+    }
   });
 };
 
@@ -153,15 +132,13 @@ app.use(errorHandler);
 // Start server
 const startServer = async () => {
   try {
-    await connectDB();
     app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+      console.log(`Server is running on port ${PORT}`);
       console.log('Environment:', process.env.NODE_ENV);
-      console.log('MongoDB URI:', process.env.MONGODB_URI ? 'Set' : 'Not set');
-      console.log('CORS origins:', allowedOrigins);
+      console.log('MongoDB Status:', mongoose.connection.readyState === 1 ? 'connected' : 'disconnected');
     });
-  } catch (error) {
-    console.error('Failed to start server:', error);
+  } catch (err) {
+    console.error('Error starting server:', err);
     process.exit(1);
   }
 };
