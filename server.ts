@@ -130,7 +130,7 @@ app.use(errorHandler);
 // Start server
 const startServer = async () => {
   try {
-    app.listen(port, "0.0.0.0", 0, () => {
+    app.listen(port, '0.0.0.0', () => {
       console.log(`Server is running on port ${port}`);
       console.log('Environment:', process.env.NODE_ENV);
       console.log('MongoDB URI:', process.env.MONGODB_URI?.substring(0, 20) + '...');
