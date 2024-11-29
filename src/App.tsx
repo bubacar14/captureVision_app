@@ -8,6 +8,7 @@ import Navbar from './components/layout/Navbar';
 import SettingsView from './components/SettingsView';
 import SecretCode from './components/SecretCode';
 import { ThemeProvider } from './context/ThemeContext';
+import { LanguageProvider } from './context/LanguageContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -172,80 +173,159 @@ function App() {
     }
   };
 
+  const handleUpdateWedding = async (mongoId: string, updatedData: Partial<Wedding>) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      console.log('Updating wedding with ID:', mongoId);
+      console.log('Update data:', updatedData);
+      
+      // Prepare the data for the API
+      const dataToUpdate = {
+        ...updatedData,
+        date: updatedData.date 
+          ? (updatedData.date instanceof Date 
+            ? updatedData.date.toISOString()
+            : new Date(updatedData.date).toISOString())
+          : undefined
+      };
+      
+      console.log('Data being sent to server:', dataToUpdate);
+      
+      const response = await fetch(`${API_BASE_URL}/api/weddings/${mongoId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(dataToUpdate)
+      });
+
+      console.log('App - Update response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Update error response:', errorData);
+        
+        // Enhanced error message based on the type of error
+        let errorMessage = errorData.message || `Erreur: ${response.status} ${response.statusText}`;
+        if (response.status === 404) {
+          errorMessage = `Mariage non trouvé (ID: ${errorData.requestedId}). Veuillez rafraîchir la page.`;
+        } else if (errorData.details) {
+          errorMessage += ` - ${errorData.details}`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      const updatedWedding = await response.json();
+      console.log('Updated wedding from server:', updatedWedding);
+      
+      // Update the weddings list with the new data
+      setWeddings(prevWeddings =>
+        prevWeddings.map(w =>
+          (w._id === mongoId || w.id === mongoId) 
+            ? { ...updatedWedding, date: new Date(updatedWedding.date) }
+            : w
+        )
+      );
+
+      // Update selected wedding if it's the one that was just modified
+      if (selectedWedding && (selectedWedding._id === mongoId || selectedWedding.id === mongoId)) {
+        setSelectedWedding({ ...updatedWedding, date: new Date(updatedWedding.date) });
+      }
+
+      console.log('Wedding updated successfully');
+      
+      // Refresh the weddings list to ensure we have the latest data
+      fetchWeddings();
+      
+    } catch (err) {
+      console.error('Error updating wedding:', err);
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue lors de la mise à jour du mariage');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (!isAuthenticated) {
     return <SecretCode onSuccess={() => setIsAuthenticated(true)} />;
   }
 
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-        <Navbar 
-          currentView={view} 
-          onViewChange={setView}
-          onNewWedding={() => setIsNewWeddingModalOpen(true)}
-        />
-        
-        <main className="container mx-auto px-4 py-8">
-          {error && (
-            <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">
-              {error}
-            </div>
-          )}
-
-          {view === 'dashboard' && (
-            isLoading ? (
-              <div className="flex justify-center items-center h-64">
-                <p className="text-gray-500">Chargement des mariages...</p>
+      <LanguageProvider>
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+          <Navbar 
+            currentView={view} 
+            onViewChange={setView}
+            onNewWedding={() => setIsNewWeddingModalOpen(true)}
+          />
+          
+          <main className="container mx-auto px-4 py-8">
+            {error && (
+              <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">
+                {error}
               </div>
-            ) : weddings.length > 0 ? (
-              <Dashboard
-                weddings={weddings}
+            )}
+
+            {view === 'dashboard' && (
+              isLoading ? (
+                <div className="flex justify-center items-center h-64">
+                  <p className="text-gray-500">Chargement des mariages...</p>
+                </div>
+              ) : weddings.length > 0 ? (
+                <Dashboard
+                  weddings={weddings}
+                  onWeddingSelect={(wedding) => {
+                    setSelectedWedding(wedding);
+                    setView('details');
+                  }}
+                  isLoading={isLoading}
+                />
+              ) : (
+                <div className="flex justify-center items-center h-64">
+                  <p className="text-gray-500">Aucun mariage trouvé</p>
+                </div>
+              )
+            )}
+
+            {view === 'calendar' && (
+              <CalendarView 
+                weddings={weddings} 
                 onWeddingSelect={(wedding) => {
                   setSelectedWedding(wedding);
                   setView('details');
-                }}
-                isLoading={isLoading}
+                }} 
               />
-            ) : (
-              <div className="flex justify-center items-center h-64">
-                <p className="text-gray-500">Aucun mariage trouvé</p>
-              </div>
-            )
-          )}
+            )}
 
-          {view === 'calendar' && (
-            <CalendarView 
-              weddings={weddings} 
-              onWeddingSelect={(wedding) => {
-                setSelectedWedding(wedding);
-                setView('details');
-              }} 
-            />
-          )}
+            {view === 'details' && selectedWedding && (
+              <WeddingDetails
+                wedding={selectedWedding}
+                onBack={() => {
+                  setSelectedWedding(null);
+                  setView('dashboard');
+                }}
+                onDelete={handleDeleteWedding}
+                onUpdate={handleUpdateWedding}
+              />
+            )}
 
-          {view === 'details' && selectedWedding && (
-            <WeddingDetails
-              wedding={selectedWedding}
-              onBack={() => {
-                setSelectedWedding(null);
-                setView('dashboard');
-              }}
-              onDelete={handleDeleteWedding}
-            />
-          )}
+            {view === 'settings' && (
+              <SettingsView />
+            )}
 
-          {view === 'settings' && (
-            <SettingsView />
-          )}
-
-          {isNewWeddingModalOpen && (
-            <NewWeddingForm
-              onSave={handleCreateWedding}
-              onCancel={() => setIsNewWeddingModalOpen(false)}
-            />
-          )}
-        </main>
-      </div>
+            {isNewWeddingModalOpen && (
+              <NewWeddingForm
+                onSave={handleCreateWedding}
+                onCancel={() => setIsNewWeddingModalOpen(false)}
+              />
+            )}
+          </main>
+        </div>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

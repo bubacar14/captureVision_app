@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { WeddingFormData, WeddingInput } from '../types';
 import { Calendar, MapPin, Phone, FileText, Bell, X, User } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface NewWeddingFormProps {
   onSave: (wedding: WeddingInput) => void;
@@ -8,6 +9,7 @@ interface NewWeddingFormProps {
 }
 
 const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState<WeddingFormData>({
     clientName: '',
     date: '',
@@ -57,12 +59,12 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
       <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl w-full max-w-md mx-auto p-4 sm:p-6 shadow-2xl transform transition-all duration-300 scale-100 my-2 sm:my-4">
         <div className="flex justify-between items-center mb-4 sm:mb-6">
           <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-400 to-blue-500 bg-clip-text text-transparent">
-            Nouveau Mariage
+            {t('wedding.form.title')}
           </h2>
           <button
             onClick={onCancel}
             className="p-1.5 sm:p-2 hover:bg-gray-700/50 rounded-full transition-colors duration-200 group"
-            aria-label="Fermer"
+            aria-label={t('common.cancel')}
           >
             <X className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 group-hover:text-white transition-colors" />
           </button>
@@ -72,7 +74,7 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
           <div className="space-y-3 sm:space-y-4">
             <div className="relative">
               <label htmlFor="clientName" className="block text-sm font-medium text-gray-300 mb-1 sm:mb-1.5">
-                Nom du client
+                {t('wedding.clientName')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-2.5 sm:pl-3 flex items-center pointer-events-none">
@@ -86,14 +88,14 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
                   onChange={handleChange}
                   required
                   className="w-full bg-gray-800/50 border border-gray-700 rounded-xl pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-600"
-                  placeholder="Nom complet"
+                  placeholder={t('wedding.form.clientNamePlaceholder')}
                 />
               </div>
             </div>
 
             <div className="relative">
               <label htmlFor="date" className="block text-sm font-medium text-gray-300 mb-1 sm:mb-1.5">
-                Date du mariage
+                {t('wedding.date')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-2.5 sm:pl-3 flex items-center pointer-events-none">
@@ -116,7 +118,7 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
 
             <div className="relative">
               <label htmlFor="venue" className="block text-sm font-medium text-gray-300 mb-1 sm:mb-1.5">
-                Lieu
+                {t('wedding.venue')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-2.5 sm:pl-3 flex items-center pointer-events-none">
@@ -130,14 +132,14 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
                   onChange={handleChange}
                   required
                   className="w-full bg-gray-800/50 border border-gray-700 rounded-xl pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-600"
-                  placeholder="Lieu du mariage"
+                  placeholder={t('wedding.form.venuePlaceholder')}
                 />
               </div>
             </div>
 
             <div className="relative">
               <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-300 mb-1 sm:mb-1.5">
-                Numéro de téléphone
+                {t('wedding.phoneNumber')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-2.5 sm:pl-3 flex items-center pointer-events-none">
@@ -151,14 +153,14 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
                   onChange={handleChange}
                   required
                   className="w-full bg-gray-800/50 border border-gray-700 rounded-xl pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-600"
-                  placeholder="Numéro de téléphone"
+                  placeholder={t('wedding.form.phonePlaceholder')}
                 />
               </div>
             </div>
 
             <div className="relative">
               <label htmlFor="notes" className="block text-sm font-medium text-gray-300 mb-1 sm:mb-1.5">
-                Notes
+                {t('wedding.notes')}
               </label>
               <div className="relative">
                 <div className="absolute top-2 sm:top-3 left-2.5 sm:left-3 pointer-events-none">
@@ -171,7 +173,7 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
                   onChange={handleChange}
                   rows={3}
                   className="w-full bg-gray-800/50 border border-gray-700 rounded-xl pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-600 resize-none"
-                  placeholder="Notes additionnelles..."
+                  placeholder={t('wedding.form.notesPlaceholder')}
                 />
               </div>
             </div>
@@ -180,7 +182,7 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
               <label className="block text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">
                 <div className="flex items-center space-x-2">
                   <Bell className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
-                  <span>Notifications</span>
+                  <span>{t('wedding.form.notifications')}</span>
                 </div>
               </label>
               <div className="space-y-2 bg-gray-800/30 p-2.5 sm:p-3.5 rounded-xl border border-gray-700">
@@ -192,7 +194,7 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
                     onChange={handleChange}
                     className="form-checkbox h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500 rounded border-gray-600 bg-gray-700 focus:ring-blue-500 focus:ring-offset-0 transition-all cursor-pointer"
                   />
-                  <span>Une semaine avant</span>
+                  <span>{t('wedding.form.oneWeek')}</span>
                 </label>
                 <label className="flex items-center space-x-2 text-xs sm:text-sm text-gray-300 hover:text-white transition-colors cursor-pointer">
                   <input
@@ -202,7 +204,7 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
                     onChange={handleChange}
                     className="form-checkbox h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500 rounded border-gray-600 bg-gray-700 focus:ring-blue-500 focus:ring-offset-0 transition-all cursor-pointer"
                   />
-                  <span>Trois jours avant</span>
+                  <span>{t('wedding.form.threeDays')}</span>
                 </label>
                 <label className="flex items-center space-x-2 text-xs sm:text-sm text-gray-300 hover:text-white transition-colors cursor-pointer">
                   <input
@@ -212,7 +214,7 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
                     onChange={handleChange}
                     className="form-checkbox h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500 rounded border-gray-600 bg-gray-700 focus:ring-blue-500 focus:ring-offset-0 transition-all cursor-pointer"
                   />
-                  <span>Un jour avant</span>
+                  <span>{t('wedding.form.oneDay')}</span>
                 </label>
               </div>
             </div>
@@ -224,13 +226,13 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
               onClick={onCancel}
               className="w-full sm:w-auto px-4 py-2 sm:py-2.5 text-sm font-medium bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl transition-all duration-200 hover:text-white border border-gray-700 hover:border-gray-600"
             >
-              Annuler
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               className="w-full bg-blue-500 text-white py-2.5 sm:py-3 rounded-xl font-medium hover:bg-blue-400 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:outline-none transition-all duration-300 shadow-lg shadow-blue-500/20"
             >
-              Enregistrer
+              {t('common.save')}
             </button>
           </div>
         </form>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Bell, Calendar, Home, Plus, Settings } from 'lucide-react';
 import { View } from '../../types';
 import { motion } from 'framer-motion';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface NavbarProps {
   currentView: View;
@@ -10,6 +11,8 @@ interface NavbarProps {
 }
 
 export default function Navbar({ currentView, onViewChange, onNewWedding }: NavbarProps) {
+  const { t } = useLanguage();
+  
   const NavButton = ({ view, icon: Icon, onClick }: { view: View; icon: React.ElementType; onClick?: () => void }) => (
     <motion.button
       whileHover={{ scale: 1.1, y: -2 }}
@@ -20,6 +23,7 @@ export default function Navbar({ currentView, onViewChange, onNewWedding }: Navb
           ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20'
           : 'text-gray-100 hover:text-blue-400 hover:bg-gray-800/50'
       }`}
+      aria-label={t(`nav.${view}`)}
     >
       <Icon className="h-6 w-6" />
     </motion.button>

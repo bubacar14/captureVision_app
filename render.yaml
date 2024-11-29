@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: wedding-planner
+    name: capturevision-app
     env: node
     buildCommand: npm install && npm run build && npm run build:server
     startCommand: npm start
@@ -12,7 +12,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: VITE_API_URL
-        value: https://wedding-planner-app-qlvw.onrender.com
+        value: https://capturevision-app.onrender.com
       - key: NODE_VERSION
         value: 18.19.0
     healthCheckPath: /api/health

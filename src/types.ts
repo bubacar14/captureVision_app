@@ -1,6 +1,8 @@
 export interface Wedding {
-  _id: string;
+  _id?: string;
+  id?: string;
   clientName: string;
+  partnerName?: string;
   date: Date;
   venue: string;
   phoneNumber: string;
@@ -17,6 +19,7 @@ export interface Wedding {
   }[];
   services?: string[];
   guestCount?: number;
+  contactEmail?: string;
 }
 
 export type WeddingInput = Omit<Wedding, '_id' | 'date'> & {

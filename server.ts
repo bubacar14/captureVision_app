@@ -1,12 +1,19 @@
 import express, { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
-const cors = require('cors');
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
-const path = require('path');
-const Wedding = require('./models/Wedding.ts');
-const weddingRoutes = require('./src/routes/api');
-const authRoutes = require('./src/routes/auth');
-const { requestLogger, errorLogger } = require('./src/middleware/logging');
+import cors from 'cors';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Import des routes et modèles
+import Wedding from './models/Wedding.js';
+import { router as weddingRoutes } from './src/routes/api.js';
+import { router as authRoutes } from './src/routes/auth.js';
+import { requestLogger, errorLogger } from './src/middleware/logging.js';
 
 dotenv.config();
 
@@ -51,6 +58,10 @@ app.use(cors({
 }));
 
 // MongoDB Connection
+const MAX_RETRIES = 5;
+const RETRY_INTERVAL = 5000; // 5 seconds
+let retryCount = 0;
+
 const connectDB = async () => {
   try {
     const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wedding-planner';
@@ -59,12 +70,24 @@ const connectDB = async () => {
     }
 
     console.log('Connecting to MongoDB...');
-    await mongoose.connect(mongoURI);
+    await mongoose.connect(mongoURI, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
 
     console.log('MongoDB connected successfully');
+    retryCount = 0; // Reset retry count on successful connection
   } catch (error) {
     console.error('MongoDB connection error:', error);
-    process.exit(1);
+    
+    if (retryCount < MAX_RETRIES) {
+      retryCount++;
+      console.log(`Retrying connection (${retryCount}/${MAX_RETRIES}) in ${RETRY_INTERVAL/1000} seconds...`);
+      setTimeout(connectDB, RETRY_INTERVAL);
+    } else {
+      console.error('Max retry attempts reached. Exiting...');
+      process.exit(1);
+    }
   }
 };
 
