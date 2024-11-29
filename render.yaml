@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     buildCommand: npm install && npm run build
-    startCommand: node server.js
+    startCommand: npm start
     envVars:
       - key: MONGODB_URI
         value: mongodb+srv://capturevision:capturevision@cluster0.7pdqi.mongodb.net/wedding-planner?retryWrites=true&w=majority&appName=Cluster0
@@ -16,6 +16,8 @@ services:
         value: https://capturevision-app.onrender.com
       - key: CORS_ORIGINS
         value: http://localhost:5173,http://localhost:3000,https://capturevision-app.onrender.com
+      - key: JWT_SECRET
+        value: your-secret-key
     healthCheckPath: /api/health
     autoDeploy: true
     headers:

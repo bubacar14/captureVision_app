@@ -1,53 +1,63 @@
 import express from 'express';
 import { Request, Response } from 'express';
-import User from '../models/User';
+import User, { IUser } from '../models/User';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 
-const JWT_SECRET = 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 export const router = express.Router();
 
-// Register new user
+// Register user
 router.post('/register', async (req: Request, res: Response) => {
   try {
     const { email, password, name } = req.body;
 
-    // Check if user already exists
+    // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({
+        success: false,
+        error: 'User already exists'
+      });
     }
 
-    // Create new user
-    const user = new User({
+    // Create user
+    const user = await User.create({
       email,
       password,
       name
-    });
-
-    await user.save();
+    }) as IUser;
 
     // Generate token
-    const userId = user._id as Types.ObjectId;
     const token = jwt.sign(
-      { id: userId.toString() },
+      { 
+        id: user._id,
+        email: user.email,
+        name: user.name 
+      },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
 
-    res.status(201).json({
-      message: 'User created successfully',
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        role: user.role
+    return res.status(201).json({
+      success: true,
+      data: {
+        token,
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.name
+        }
       }
     });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ message: 'Error creating user' });
+    return res.status(500).json({
+      success: false,
+      error: 'Registration failed',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
 
@@ -55,24 +65,33 @@ router.post('/register', async (req: Request, res: Response) => {
 router.post('/login', async (req: Request, res: Response) => {
   try {
     console.log('Login attempt:', req.body);
-
     const { email, password } = req.body;
 
     // Find user
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).exec() as IUser;
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials'
+      });
     }
 
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials'
+      });
     }
 
     // Generate token
     const token = jwt.sign(
-      { id: user._id.toString() },
+      { 
+        id: user._id,
+        email: user.email,
+        name: user.name 
+      },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -116,10 +135,31 @@ router.get('/verify', async (req: Request, res: Response) => {
     const token = authHeader.split(' ')[1];
     
     try {
-      const decoded = jwt.verify(token, JWT_SECRET);
+      const decoded = jwt.verify(token, JWT_SECRET) as {
+        id: string;
+        email: string;
+        name: string;
+      };
+
+      // Optionally fetch fresh user data
+      const user = await User.findById(decoded.id).exec() as IUser;
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+
       return res.status(200).json({
         success: true,
-        data: { user: decoded }
+        data: {
+          user: {
+            id: user._id,
+            email: user.email,
+            name: user.name,
+            role: user.role
+          }
+        }
       });
     } catch (error) {
       return res.status(401).json({

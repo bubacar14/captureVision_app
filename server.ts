@@ -89,15 +89,13 @@ connectDB();
 app.use('/api', weddingRoutes);
 app.use('/api/auth', authRoutes);
 
-// Route pour le health check
-app.get('/api/health', (req, res) => {
-  const health = {
-    uptime: process.uptime(),
-    message: 'OK',
-    timestamp: Date.now(),
-    mongoStatus: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
-  };
-  res.status(200).json(health);
+// Health check endpoint
+app.get('/api/health', (req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
 });
 
 // Serve static files in production
