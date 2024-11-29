@@ -1,6 +1,6 @@
 import express from 'express';
 import { Request, Response } from 'express';
-import User, { IUser } from '../models/User';
+import User, { IUser } from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 

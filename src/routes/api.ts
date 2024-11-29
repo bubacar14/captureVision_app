@@ -2,7 +2,7 @@ import express from 'express';
 import type { Request, Response } from 'express';
 import Wedding from '../models/Wedding.js';
 import mongoose from 'mongoose';
-import { auth, AuthRequest } from '../middleware/auth';
+import { auth, AuthRequest } from '../middleware/auth.js';
 
 export const router = express.Router();
 

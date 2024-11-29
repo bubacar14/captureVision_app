@@ -76,7 +76,7 @@ function App() {
       
       // If we have a selected wedding, verify it still exists in the new data
       if (selectedWedding) {
-        const stillExists = data.data.some(w => w._id === selectedWedding._id);
+        const stillExists = data.data.some((w: Wedding) => w._id === selectedWedding._id);
         if (!stillExists) {
           console.log('Selected wedding no longer exists in data, resetting view');
           setSelectedWedding(null);
