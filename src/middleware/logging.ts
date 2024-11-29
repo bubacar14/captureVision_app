@@ -41,32 +41,17 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
   };
 
   // Override end
-  type EndFunctionType = {
-    (cb?: () => void): Response;
-    (chunk: any, cb?: () => void): Response;
-    (chunk: any, encoding: BufferEncoding, cb?: () => void): Response;
-  };
-
-  const endFunction: EndFunctionType = function(
-    chunk?: any,
-    encodingOrCallback?: BufferEncoding | (() => void),
-    cb?: () => void
-  ): Response {
+  const endFunction = function(this: Response, ...args: any[]): Response {
     console.log(`
 📤 Response (end):
   - Duration: ${Date.now() - start}ms
   - Status: ${res.statusCode}
   - Headers: ${JSON.stringify(res.getHeaders())}
 `);
-    
-    if (typeof encodingOrCallback === 'function') {
-      return originalEnd.call(res, chunk, encodingOrCallback);
-    } else {
-      return originalEnd.call(res, chunk, encodingOrCallback, cb);
-    }
+    return originalEnd.apply(res, args);
   };
 
-  res.end = endFunction;
+  res.end = endFunction as any;
 
   next();
 };
