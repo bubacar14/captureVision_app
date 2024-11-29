@@ -2,7 +2,8 @@ services:
   - type: web
     name: capturevision-app
     env: node
-    buildCommand: npm install && npm run build && npm run build:server
+    plan: free
+    buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: MONGODB_URI
@@ -11,43 +12,20 @@ services:
         value: 3000
       - key: NODE_ENV
         value: production
-      - key: VITE_API_URL
-        value: https://capturevision-app.onrender.com
       - key: NODE_VERSION
         value: 18.19.0
     healthCheckPath: /api/health
     autoDeploy: true
-    disk:
-      name: tmp
-      mountPath: /tmp
-      sizeGB: 1
-    scaling:
-      minInstances: 1
-      maxInstances: 3
-      targetMemoryPercent: 70
-      targetCPUPercent: 70
     headers:
       - path: /*
         name: Access-Control-Allow-Origin
-        value: https://capturevision-app.onrender.com
+        value: "*"
       - path: /*
         name: Access-Control-Allow-Methods
         value: GET,POST,PUT,DELETE,OPTIONS
       - path: /*
         name: Access-Control-Allow-Headers
         value: Content-Type,Accept,Authorization
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: Strict-Transport-Security
-        value: max-age=31536000; includeSubDomains
-      - path: /*
-        name: Content-Security-Policy
-        value: "default-src 'self' https://capturevision-app.onrender.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval';"
     routes:
       - type: rewrite
         source: /*

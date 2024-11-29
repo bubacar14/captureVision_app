@@ -110,20 +110,22 @@ mongoose.connection.once('open', () => {
   console.log('Server is ready to accept requests');
 });
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api', weddingRoutes);
+// Middleware pour servir les fichiers statiques
+app.use(express.static(path.join(__dirname, 'dist')));
 
-// Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-  const clientBuildPath = path.join(__dirname, 'dist');
-  
-  app.use(express.static(clientBuildPath));
-  
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(clientBuildPath, 'index.html'));
-  });
-}
+// Routes API
+app.use('/api', weddingRoutes);
+app.use('/api/auth', authRoutes);
+
+// Route pour le health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+// Toutes les autres routes renvoient vers l'application React
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
 
 // Error logging middleware
 app.use(errorLogger);
@@ -142,15 +144,6 @@ const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
 };
 
 app.use(errorHandler);
-
-// Catch-all route for undefined routes
-app.use('*', (req, res) => {
-  console.warn(`Route not found: ${req.originalUrl}`);
-  res.status(404).json({
-    error: 'Not Found',
-    message: `Route ${req.originalUrl} not found`
-  });
-});
 
 // Start server
 const startServer = async () => {
