@@ -21,118 +21,47 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  useEffect(() => {
-    console.log('App component mounted');
-    console.log('Current API URL:', API_BASE_URL);
-    console.log('Current view:', view);
-    console.log('Environment variables:', import.meta.env);
-    
-    // Vérifier le token au démarrage
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Valider le token avec le serveur
-      validateToken(token);
-    } else {
-      console.log('No token found in localStorage');
-      setIsAuthenticated(false);
-    }
-  }, []);
-
-  const validateToken = async (token: string) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        console.log('Token is valid');
-        setIsAuthenticated(true);
-        fetchWeddings();
-      } else {
-        console.log('Token is invalid');
-        localStorage.removeItem('token');
-        setIsAuthenticated(false);
-      }
-    } catch (error) {
-      console.error('Error validating token:', error);
-      localStorage.removeItem('token');
-      setIsAuthenticated(false);
-    }
-  };
-
   const fetchWeddings = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      
-      // Vérifier si l'utilisateur est authentifié
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.log('No authentication token found');
-        setError('Veuillez vous connecter pour voir les mariages');
-        setIsLoading(false);
-        return;
-      }
-
+  
       const apiUrl = `${API_BASE_URL}/api/weddings`;
       console.log('=== Fetching Weddings ===');
       console.log('API URL:', apiUrl);
-      console.log('Token exists:', !!token);
 
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         }
       });
 
       console.log('Response status:', response.status);
       
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Error response:', errorData);
-        throw new Error(errorData.message || `Error: ${response.status} ${response.statusText}`);
+        throw new Error('Failed to fetch weddings');
       }
 
-      const data = await response.json();
-      console.log('Response data:', {
-        success: data.success,
-        dataLength: data.data?.length,
-        firstItem: data.data?.[0]
-      });
-
-      if (!data.success || !data.data || !Array.isArray(data.data)) {
-        console.error('Invalid data format:', data);
-        throw new Error('Format de données invalide reçu du serveur');
-      }
-
-      // Ensure all dates are properly converted to Date objects
-      const processedWeddings = data.data.map((wedding: Wedding) => ({
-        ...wedding,
-        date: new Date(wedding.date)
-      }));
-
-      console.log('Processed weddings:', processedWeddings.length);
-      setWeddings(processedWeddings);
-      
-      // If we have a selected wedding, verify it still exists in the new data
-      if (selectedWedding) {
-        const stillExists = processedWeddings.some((w: Wedding) => w._id === selectedWedding._id);
-        if (!stillExists) {
-          setSelectedWedding(null);
-        }
-      }
+      const data: Wedding[] = await response.json();
+      setWeddings(data);
     } catch (err) {
-      console.error('Error in fetchWeddings:', err);
-      setError(err instanceof Error ? err.message : 'Erreur lors de la récupération des mariages');
+      console.error('Error fetching weddings:', err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    console.log('App component mounted');
+    console.log('Current API URL:', API_BASE_URL);
+    console.log('Current view:', view);
+    console.log('Environment variables:', import.meta.env);
+    
+    fetchWeddings();
+  }, []);
 
   const handleDeleteWedding = async (weddingId: string) => {
     try {

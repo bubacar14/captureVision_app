@@ -27,6 +27,7 @@ export default function WeddingDetails({ wedding, onBack, onDelete, onUpdate }: 
   };
 
   const handleEdit = () => {
+    
     setIsEditing(true);
     setEditedWedding(wedding);
   };
@@ -150,6 +151,7 @@ export default function WeddingDetails({ wedding, onBack, onDelete, onUpdate }: 
         <div className="flex gap-3">
           {isEditing ? (
             <>
+
               <button
                 onClick={handleSave}
                 className="flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all transform hover:scale-105 duration-200 ease-in-out shadow-lg"
@@ -167,6 +169,7 @@ export default function WeddingDetails({ wedding, onBack, onDelete, onUpdate }: 
             </>
           ) : (
             <>
+
               <button
                 onClick={handleEdit}
                 className="flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all transform hover:scale-105 duration-200 ease-in-out shadow-lg"
@@ -314,6 +317,7 @@ export default function WeddingDetails({ wedding, onBack, onDelete, onUpdate }: 
                             oneWeek: e.target.checked
                           }
                         }))}
+
                         className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
                         disabled={!isEditing}
                       />
@@ -331,6 +335,7 @@ export default function WeddingDetails({ wedding, onBack, onDelete, onUpdate }: 
                             threeDays: e.target.checked
                           }
                         }))}
+
                         className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
                         disabled={!isEditing}
                       />
@@ -348,6 +353,7 @@ export default function WeddingDetails({ wedding, onBack, onDelete, onUpdate }: 
                             oneDay: e.target.checked
                           }
                         }))}
+
                         className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
                         disabled={!isEditing}
                       />
