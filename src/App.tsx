@@ -29,19 +29,25 @@ function App() {
       const apiUrl = `${API_BASE_URL}/api/weddings`;
       console.log('=== Fetching Weddings ===');
       console.log('API URL:', apiUrl);
+      console.log('Token:', localStorage.getItem('token') ? 'Present' : 'Missing');
 
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-        }
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        credentials: 'include'
       });
 
       console.log('Response status:', response.status);
+      console.log('Response headers:', [...response.headers.entries()]);
       
       if (!response.ok) {
-        throw new Error('Failed to fetch weddings');
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`Failed to fetch weddings: ${response.status} ${errorText}`);
       }
 
       const data: Wedding[] = await response.json();

@@ -21,8 +21,13 @@ export default function WeddingDetails({ wedding, onBack, onDelete, onUpdate }: 
       fullWedding: wedding
     });
     
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce mariage ? Cette action est irréversible.')) {
-      onDelete(wedding._id);
+    if (wedding._id) {
+      if (window.confirm('Êtes-vous sûr de vouloir supprimer ce mariage ? Cette action est irréversible.')) {
+        onDelete(wedding._id);
+      }
+    } else {
+      console.error('Cannot delete wedding: No ID provided');
+      // Optionally show a user-friendly error message
     }
   };
 
@@ -49,24 +54,19 @@ export default function WeddingDetails({ wedding, onBack, onDelete, onUpdate }: 
       date: editedWedding.date 
         ? (editedWedding.date instanceof Date 
           ? editedWedding.date 
-          : new Date(editedWedding.date))
-        : undefined, // Explicitly handle potential undefined case
-      partnerName: editedWedding.partnerName ?? '',
+          : new Date(editedWedding.date)) 
+        : undefined,
       venue: editedWedding.venue ?? '',
       phoneNumber: editedWedding.phoneNumber ?? '',
       contactEmail: editedWedding.contactEmail ?? '',
-      guestCount: editedWedding.guestCount ?? 0,
-      notes: editedWedding.notes ?? '',
-      notifications: editedWedding.notifications ?? {
-        oneWeek: false,
-        threeDays: false,
-        oneDay: false
-      }
+      notes: editedWedding.notes ?? ''
     };
 
-    console.log('WeddingDetails - Wedding ID for update:', wedding._id);
-    console.log('WeddingDetails - Update data prepared:', updatedData);
-    
+    // Remove undefined values
+    Object.keys(updatedData).forEach(key => 
+      updatedData[key as keyof Wedding] === undefined && delete updatedData[key as keyof Wedding]
+    );
+
     onUpdate(wedding._id, updatedData);
     setIsEditing(false);
   };
