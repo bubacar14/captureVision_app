@@ -130,8 +130,9 @@ app.use(errorHandler);
 // Start server
 function startServer() {
   const port = Number(process.env.PORT) || 10000;
-  const server = app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+  const host = '0.0.0.0';
+  const server = app.listen(port, host, () => {
+    console.log(`Server is running on http://${host}:${port}`);
     console.log('Environment:', process.env.NODE_ENV);
     console.log('MongoDB URI:', process.env.MONGODB_URI?.substring(0, 20) + '...');
     console.log('CORS Origins:', process.env.CORS_ORIGINS);

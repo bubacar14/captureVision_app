@@ -20,6 +20,8 @@ services:
         sync: false
     healthCheckPath: /api/health
     autoDeploy: true
+    domains:
+      - capturevision-app.onrender.com
     headers:
       - path: /*
         name: Access-Control-Allow-Origin
