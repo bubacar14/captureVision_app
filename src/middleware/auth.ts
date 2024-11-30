@@ -6,7 +6,7 @@ export interface AuthRequest extends Request {
   user?: any;
 }
 
-export const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     console.log('Auth middleware - Headers:', req.headers);
     
@@ -51,3 +51,5 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
     });
   }
 };
+
+export const auth = authenticateToken;

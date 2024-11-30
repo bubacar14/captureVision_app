@@ -44,8 +44,9 @@ function App() {
       }
 
       const apiUrl = `${API_BASE_URL}/api/weddings`;
-      console.log('Fetching weddings from:', apiUrl);
-      console.log('Using token:', token.substring(0, 10) + '...');
+      console.log('=== Fetching Weddings ===');
+      console.log('API URL:', apiUrl);
+      console.log('Token exists:', !!token);
 
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -65,22 +66,31 @@ function App() {
       }
 
       const data = await response.json();
-      console.log('Received data:', data);
+      console.log('Response data:', {
+        success: data.success,
+        dataLength: data.data?.length,
+        firstItem: data.data?.[0]
+      });
 
-      if (!data.data || !Array.isArray(data.data)) {
+      if (!data.success || !data.data || !Array.isArray(data.data)) {
         console.error('Invalid data format:', data);
         throw new Error('Format de données invalide reçu du serveur');
       }
 
-      setWeddings(data.data);
+      // Ensure all dates are properly converted to Date objects
+      const processedWeddings = data.data.map((wedding: Wedding) => ({
+        ...wedding,
+        date: new Date(wedding.date)
+      }));
+
+      console.log('Processed weddings:', processedWeddings.length);
+      setWeddings(processedWeddings);
       
       // If we have a selected wedding, verify it still exists in the new data
       if (selectedWedding) {
-        const stillExists = data.data.some((w: Wedding) => w._id === selectedWedding._id);
+        const stillExists = processedWeddings.some((w: Wedding) => w._id === selectedWedding._id);
         if (!stillExists) {
-          console.log('Selected wedding no longer exists in data, resetting view');
           setSelectedWedding(null);
-          setView('dashboard');
         }
       }
     } catch (err) {

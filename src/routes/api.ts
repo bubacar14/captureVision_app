@@ -17,8 +17,8 @@ const validateObjectId = (req: Request, res: Response, next: Function) => {
 // Get all weddings with pagination
 router.get('/weddings', auth, async (req: AuthRequest, res: Response) => {
   try {
-    console.log('GET /weddings - Starting request');
-    console.log('User:', req.user);
+    console.log('=== GET /weddings ===');
+    console.log('MongoDB Connection State:', mongoose.connection.readyState);
     
     // Vérifier la connexion MongoDB
     if (mongoose.connection.readyState !== 1) {
@@ -46,25 +46,25 @@ router.get('/weddings', auth, async (req: AuthRequest, res: Response) => {
       Wedding.countDocuments()
     ]);
 
-    console.log(`Found ${weddings.length} weddings out of ${total} total`);
-
+    console.log('Weddings found:', weddings.length);
+    
     if (!Array.isArray(weddings)) {
-      console.error('Weddings is not an array:', weddings);
+      console.error('Invalid response format:', weddings);
       return res.status(500).json({
         success: false,
-        error: 'Invalid data format from database'
+        error: 'Invalid data format'
       });
     }
 
-    // Transform dates to ISO string format
+    // Format the weddings data
     const formattedWeddings = weddings.map(wedding => ({
       ...wedding,
+      _id: wedding._id.toString(),
       date: wedding.date instanceof Date ? wedding.date.toISOString() : wedding.date,
-      _id: wedding._id.toString()
     }));
 
-    console.log('Sending response with weddings:', formattedWeddings.length);
-
+    console.log('Sending formatted weddings:', formattedWeddings.length);
+    
     return res.status(200).json({
       success: true,
       data: formattedWeddings,
@@ -76,10 +76,10 @@ router.get('/weddings', auth, async (req: AuthRequest, res: Response) => {
       }
     });
   } catch (error) {
-    console.error('Error in GET /weddings:', error);
+    console.error('Error fetching weddings:', error);
     return res.status(500).json({
       success: false,
-      error: 'Internal server error',
+      error: 'Error fetching weddings',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
