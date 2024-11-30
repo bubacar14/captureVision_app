@@ -5,7 +5,8 @@ import path from 'path';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  server: {
+  server: {port: process.env.PORT ? Number(process.env.PORT) : 4173,  // Convert PORT to number if it exists
+    host: '0.0.0.0',  // Permet à l'app d'écouter sur toutes les interfaces réseau
     proxy: {
       '/api': {
         target: process.env.VITE_API_URL || 'http://localhost:3000',

@@ -24,7 +24,10 @@ if (process.env.NODE_ENV === 'production') {
 
 const app = express();
 const port: number = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-
+// Démarrage du serveur
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server is running on port ${port}`);
+});
 console.log('Environment:', process.env.NODE_ENV);
 console.log('MongoDB URI:', process.env.MONGODB_URI);
 console.log('API URL:', process.env.VITE_API_URL);
