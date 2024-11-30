@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "outDir": "./dist",
     "rootDir": "./",
     "strict": true,
@@ -12,7 +12,11 @@
     "allowJs": true,
     "resolveJsonModule": true,
     "declaration": true,
-    "declarationDir": "./dist"
+    "declarationDir": "./dist",
+    "types": ["vite/client", "node"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": [
     "server.ts",
@@ -20,7 +24,8 @@
     "src/middleware/**/*",
     "src/models/**/*",
     "src/types.ts",
-    "src/config.ts"
+    "src/config.ts",
+    "src/vite-env.d.ts"
   ],
   "exclude": [
     "node_modules",
