@@ -46,7 +46,9 @@ router.get('/test-mongodb', async (req: Request, res: Response) => {
 // Get all weddings
 router.get('/weddings', auth, async (req: Request, res: Response) => {
   console.log('=== GET /weddings ===');
+  console.log('Headers:', req.headers);
   console.log('User:', req.user);
+  console.log('MongoDB State:', mongoose.connection.readyState);
   
   try {
     // Verify MongoDB connection
@@ -56,7 +58,7 @@ router.get('/weddings', auth, async (req: Request, res: Response) => {
     }
 
     const weddings = await Wedding.find().sort({ date: 1 });
-    console.log(`Found ${weddings.length} weddings`);
+    console.log(`Found ${weddings.length} weddings:`, weddings);
     
     res.json({
       success: true,

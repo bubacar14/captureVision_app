@@ -12,9 +12,11 @@ export const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 export const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // CORS configuration
-export const CORS_ORIGIN = process.env.NODE_ENV === 'production'
-  ? 'https://capturevision-app.onrender.com'
-  : 'http://localhost:5173';
+export const CORS_ORIGIN = process.env.CORS_ORIGINS?.split(',') || [
+  'https://capturevision-app.onrender.com',
+  'http://localhost:5173',
+  'http://localhost:3000'
+];
 
 // JWT configuration
 export const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';

@@ -26,8 +26,41 @@ function App() {
     console.log('Current API URL:', API_BASE_URL);
     console.log('Current view:', view);
     console.log('Environment variables:', import.meta.env);
-    fetchWeddings();
+    
+    // Vérifier le token au démarrage
+    const token = localStorage.getItem('token');
+    if (token) {
+      // Valider le token avec le serveur
+      validateToken(token);
+    } else {
+      console.log('No token found in localStorage');
+      setIsAuthenticated(false);
+    }
   }, []);
+
+  const validateToken = async (token: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        console.log('Token is valid');
+        setIsAuthenticated(true);
+        fetchWeddings();
+      } else {
+        console.log('Token is invalid');
+        localStorage.removeItem('token');
+        setIsAuthenticated(false);
+      }
+    } catch (error) {
+      console.error('Error validating token:', error);
+      localStorage.removeItem('token');
+      setIsAuthenticated(false);
+    }
+  };
 
   const fetchWeddings = async () => {
     try {
