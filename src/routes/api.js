@@ -1,16 +1,20 @@
 import express from 'express';
 import Wedding from '../../models/Wedding.js';
+import mongoose from 'mongoose'; // Import mongoose
 
 export const router = express.Router();
 
 // GET all weddings
 router.get('/weddings', async (req, res) => {
   try {
+    console.log('Fetching weddings...');
     const weddings = await Wedding.find();
+    console.log('Weddings found:', weddings.length);
+    console.log('First wedding (if any):', weddings[0]);
     res.json(weddings);
   } catch (error) {
     console.error('Error fetching weddings:', error);
-    res.status(500).json({ message: 'Error fetching weddings' });
+    res.status(500).json({ message: 'Error fetching weddings', error: error.message });
   }
 });
 
@@ -114,5 +118,32 @@ router.delete('/weddings/:id', async (req, res) => {
   } catch (error) {
     console.error('Error deleting wedding:', error);
     res.status(500).json({ message: 'Error deleting wedding' });
+  }
+});
+
+// Test MongoDB connection
+router.get('/test-db', async (req, res) => {
+  try {
+    console.log('Testing MongoDB connection...');
+    console.log('MongoDB URI:', process.env.MONGODB_URI ? 'URI is set' : 'URI is missing');
+    console.log('Mongoose connection state:', mongoose.connection.readyState);
+    
+    // Test basic query
+    const count = await Wedding.countDocuments();
+    console.log('Total weddings in database:', count);
+    
+    res.json({
+      status: 'success',
+      mongooseState: mongoose.connection.readyState,
+      totalWeddings: count,
+      dbName: mongoose.connection.db?.databaseName
+    });
+  } catch (error) {
+    console.error('Database test error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message,
+      mongooseState: mongoose.connection.readyState
+    });
   }
 });
