@@ -128,18 +128,16 @@ const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
 app.use(errorHandler);
 
 // Start server
-const startServer = async () => {
-  try {
-    app.listen(port, '0.0.0.0', () => {
-      console.log(`Server is running on port ${port}`);
-      console.log('Environment:', process.env.NODE_ENV);
-      console.log('MongoDB URI:', process.env.MONGODB_URI?.substring(0, 20) + '...');
-      console.log('CORS Origins:', process.env.CORS_ORIGINS);
-    });
-  } catch (err) {
-    console.error('Error starting server:', err);
-    process.exit(1);
-  }
-};
+function startServer() {
+  const port = Number(process.env.PORT) || 10000;
+  const server = app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('MongoDB URI:', process.env.MONGODB_URI?.substring(0, 20) + '...');
+    console.log('CORS Origins:', process.env.CORS_ORIGINS);
+  });
+  
+  return server;
+}
 
 startServer();
