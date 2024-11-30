@@ -7,7 +7,7 @@ services:
     startCommand: npm start
     envVars:
       - key: MONGODB_URI
-        value: mongodb+srv://capturevision:capturevision@cluster0.7pdqi.mongodb.net/wedding-planner?retryWrites=true&w=majority&appName=Cluster0
+        sync: false
       - key: PORT
         value: 3000
       - key: NODE_ENV
@@ -17,7 +17,7 @@ services:
       - key: CORS_ORIGINS
         value: http://localhost:5173,http://localhost:3000,https://capturevision-app.onrender.com
       - key: JWT_SECRET
-        value: your-secret-key
+        sync: false
     healthCheckPath: /api/health
     autoDeploy: true
     headers:
