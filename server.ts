@@ -24,71 +24,21 @@ if (process.env.NODE_ENV === 'production') {
 
 const app = express();
 const port: number = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-// Démarrage du serveur
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server is running on port ${port}`);
-});
-console.log('Environment:', process.env.NODE_ENV);
-console.log('MongoDB URI:', process.env.MONGODB_URI);
-console.log('API URL:', process.env.VITE_API_URL);
 
-// Middleware de logging
-app.use(requestLogger);
-
-// Middleware standard
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(requestLogger);
 
-// Configuration CORS
-const allowedOrigins = process.env.CORS_ORIGINS 
-  ? process.env.CORS_ORIGINS.split(',')
-  : ['http://localhost:5173', 'http://localhost:3000', 'https://capturevision-app.onrender.com'];
-
-console.log('Allowed CORS origins:', allowedOrigins);
-
+// CORS configuration
 app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log('Origin not allowed:', origin);
-      callback(null, false);
-    }
-  },
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://capturevision-app.onrender.com', 'https://capturevision-app.onrender.com/']
+    : 'http://localhost:5173',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
-
-// Connect to MongoDB
-const connectDB = async () => {
-  try {
-    const mongoURI = process.env.MONGODB_URI;
-    if (!mongoURI) {
-      throw new Error('MongoDB URI is not defined');
-    }
-
-    console.log('=== MongoDB Connection Info ===');
-    console.log('Environment:', process.env.NODE_ENV);
-    console.log('MongoDB URI exists:', !!process.env.MONGODB_URI);
-    console.log('MongoDB URI format:', mongoURI.split('@')[1]?.split('/')[0] || 'Invalid URI format');
-
-    console.log('Connecting to MongoDB...');
-    await mongoose.connect(mongoURI);
-    
-    const dbName = mongoose.connection.db?.databaseName;
-    const collections = await mongoose.connection.db?.listCollections().toArray();
-    
-    console.log('MongoDB Connected Successfully');
-    console.log('Database Name:', dbName);
-    console.log('Available Collections:', collections?.map(c => c.name).join(', '));
-  } catch (err) {
-    console.error('MongoDB connection error:', err);
-    process.exit(1);
-  }
-};
-
-connectDB();
 
 // Routes API
 app.use('/api', weddingRoutes);
@@ -132,18 +82,40 @@ const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
 
 app.use(errorHandler);
 
-// Start server
-function startServer() {
-  const port = Number(process.env.PORT) || 10000;
-  const host = '0.0.0.0';
-  const server = app.listen(port, host, () => {
-    console.log(`Server is running on http://${host}:${port}`);
-    console.log('Environment:', process.env.NODE_ENV);
-    console.log('MongoDB URI:', process.env.MONGODB_URI?.substring(0, 20) + '...');
-    console.log('CORS Origins:', process.env.CORS_ORIGINS);
-  });
-  
-  return server;
-}
+// Connect to MongoDB
+const connectDB = async () => {
+  try {
+    const mongoURI = process.env.MONGODB_URI;
+    if (!mongoURI) {
+      throw new Error('MongoDB URI is not defined');
+    }
 
-startServer();
+    console.log('=== MongoDB Connection Info ===');
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('MongoDB URI exists:', !!process.env.MONGODB_URI);
+    console.log('MongoDB URI format:', mongoURI.split('@')[1]?.split('/')[0] || 'Invalid URI format');
+
+    console.log('Connecting to MongoDB...');
+    await mongoose.connect(mongoURI);
+    
+    const dbName = mongoose.connection.db?.databaseName;
+    const collections = await mongoose.connection.db?.listCollections().toArray();
+    
+    console.log('MongoDB Connected Successfully');
+    console.log('Database Name:', dbName);
+    console.log('Available Collections:', collections?.map(c => c.name).join(', '));
+  } catch (err) {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  }
+};
+
+connectDB();
+
+// Démarrage du serveur
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server is running on port ${port}`);
+});
+console.log('Environment:', process.env.NODE_ENV);
+console.log('MongoDB URI:', process.env.MONGODB_URI);
+console.log('API URL:', process.env.VITE_API_URL);
