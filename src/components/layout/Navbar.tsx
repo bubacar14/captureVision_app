@@ -1,6 +1,6 @@
 import React from 'react';
-import { Bell, Calendar, Home, Plus, Settings } from 'lucide-react';
-import { View } from '../../types';
+import { Bell, Calendar, Home, Plus, Settings, Menu, X } from 'lucide-react';
+import type { View } from '../../types';
 import { motion } from 'framer-motion';
 import { useLanguage } from '../../context/LanguageContext';
 

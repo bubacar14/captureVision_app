@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { WeddingFormData, WeddingInput } from '../types';
+import type { WeddingFormData, WeddingInput } from '../types';
 import { Calendar, MapPin, Phone, FileText, Bell, X, User } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -8,8 +8,7 @@ interface NewWeddingFormProps {
   onCancel: () => void;
 }
 
-const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => {
-  const { t } = useLanguage();
+export default function NewWeddingForm({ onSave, onCancel }: NewWeddingFormProps) {
   const [formData, setFormData] = useState<WeddingFormData>({
     clientName: '',
     date: '',
@@ -23,22 +22,15 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
     }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const weddingInput: WeddingInput = {
-      ...formData,
-      date: formData.date
-    };
-    onSave(weddingInput);
-  };
+  const { t } = useLanguage();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     
     if (type === 'checkbox') {
       const [parent, child] = name.split('.');
       if (parent === 'notifications') {
-        setFormData(prev => ({
+        setFormData((prev: WeddingFormData) => ({
           ...prev,
           notifications: {
             ...prev.notifications,
@@ -47,11 +39,20 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
         }));
       }
     } else {
-      setFormData(prev => ({
+      setFormData((prev: WeddingFormData) => ({
         ...prev,
         [name]: value
       }));
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const weddingInput: WeddingInput = {
+      ...formData,
+      date: formData.date
+    };
+    onSave(weddingInput);
   };
 
   return (
@@ -85,7 +86,7 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
                   id="clientName"
                   name="clientName"
                   value={formData.clientName}
-                  onChange={handleChange}
+                  onChange={handleInputChange}
                   required
                   className="w-full bg-gray-800/50 border border-gray-700 rounded-xl pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-600"
                   placeholder={t('wedding.form.clientNamePlaceholder')}
@@ -106,7 +107,7 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
                   id="date"
                   name="date"
                   value={formData.date}
-                  onChange={handleChange}
+                  onChange={handleInputChange}
                   required
                   className="w-full bg-gray-800/50 border border-gray-700 rounded-xl pl-7 sm:pl-9 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-600 [&::-webkit-calendar-picker-indicator]:bg-white/10 [&::-webkit-calendar-picker-indicator]:hover:bg-white/20 [&::-webkit-calendar-picker-indicator]:rounded [&::-webkit-calendar-picker-indicator]:p-0.5 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:transition-colors [&::-webkit-calendar-picker-indicator]:w-4 [&::-webkit-calendar-picker-indicator]:h-4 sm:[&::-webkit-calendar-picker-indicator]:w-5 sm:[&::-webkit-calendar-picker-indicator]:h-5"
                   style={{
@@ -129,7 +130,7 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
                   id="venue"
                   name="venue"
                   value={formData.venue}
-                  onChange={handleChange}
+                  onChange={handleInputChange}
                   required
                   className="w-full bg-gray-800/50 border border-gray-700 rounded-xl pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-600"
                   placeholder={t('wedding.form.venuePlaceholder')}
@@ -150,7 +151,7 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
                   id="phoneNumber"
                   name="phoneNumber"
                   value={formData.phoneNumber}
-                  onChange={handleChange}
+                  onChange={handleInputChange}
                   required
                   className="w-full bg-gray-800/50 border border-gray-700 rounded-xl pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-600"
                   placeholder={t('wedding.form.phonePlaceholder')}
@@ -170,7 +171,7 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
                   id="notes"
                   name="notes"
                   value={formData.notes}
-                  onChange={handleChange}
+                  onChange={handleInputChange}
                   rows={3}
                   className="w-full bg-gray-800/50 border border-gray-700 rounded-xl pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-600 resize-none"
                   placeholder={t('wedding.form.notesPlaceholder')}
@@ -191,7 +192,7 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
                     type="checkbox"
                     name="notifications.oneWeek"
                     checked={formData.notifications.oneWeek}
-                    onChange={handleChange}
+                    onChange={handleInputChange}
                     className="form-checkbox h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500 rounded border-gray-600 bg-gray-700 focus:ring-blue-500 focus:ring-offset-0 transition-all cursor-pointer"
                   />
                   <span>{t('wedding.form.oneWeek')}</span>
@@ -201,7 +202,7 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
                     type="checkbox"
                     name="notifications.threeDays"
                     checked={formData.notifications.threeDays}
-                    onChange={handleChange}
+                    onChange={handleInputChange}
                     className="form-checkbox h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500 rounded border-gray-600 bg-gray-700 focus:ring-blue-500 focus:ring-offset-0 transition-all cursor-pointer"
                   />
                   <span>{t('wedding.form.threeDays')}</span>
@@ -211,7 +212,7 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
                     type="checkbox"
                     name="notifications.oneDay"
                     checked={formData.notifications.oneDay}
-                    onChange={handleChange}
+                    onChange={handleInputChange}
                     className="form-checkbox h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500 rounded border-gray-600 bg-gray-700 focus:ring-blue-500 focus:ring-offset-0 transition-all cursor-pointer"
                   />
                   <span>{t('wedding.form.oneDay')}</span>
@@ -240,5 +241,3 @@ const NewWeddingForm: React.FC<NewWeddingFormProps> = ({ onSave, onCancel }) => 
     </div>
   );
 };
-
-export default NewWeddingForm;

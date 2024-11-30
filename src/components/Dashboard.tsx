@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { Calendar, MapPin, Users, Clock } from 'lucide-react';
-import { Wedding } from '../types';
+import type { Wedding } from '../types';
 
 interface DashboardProps {
   weddings: Wedding[];
@@ -76,7 +76,7 @@ export default function Dashboard({ weddings = [], onWeddingSelect, isLoading }:
                 <div className="mt-4 pt-4 border-t border-gray-700">
                   <h4 className="text-sm font-medium text-gray-300 mb-2">Services</h4>
                   <div className="flex flex-wrap gap-2">
-                    {wedding.services.map((service) => (
+                    {wedding.services?.map((service: string) => (
                       <span 
                         key={`${wedding._id}-${service}`} 
                         className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded"

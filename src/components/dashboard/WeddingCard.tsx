@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
-import { MapPin, Clock, Users } from 'lucide-react';
-import { Wedding } from '../../types';
+import { Calendar, MapPin, Users } from 'lucide-react';
+import type { Wedding } from '../../types';
 
 interface WeddingCardProps {
   wedding: Wedding;
@@ -30,7 +30,7 @@ export default function WeddingCard({ wedding, onClick }: WeddingCardProps) {
           
           <div className="space-y-2">
             <div className="flex items-center text-gray-600 text-sm">
-              <Clock className="h-4 w-4 mr-2" />
+              <Calendar className="h-4 w-4 mr-2" />
               <span>{format(wedding.date, 'h:mm a')}</span>
             </div>
             <div className="flex items-center text-gray-600 text-sm">

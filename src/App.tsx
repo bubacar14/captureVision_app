@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Wedding, WeddingInput, View } from './types';
+import type { Wedding, WeddingInput, View } from './types';
 import Dashboard from './components/Dashboard';
 import CalendarView from './components/CalendarView';
 import WeddingDetails from './components/WeddingDetails';
@@ -178,87 +178,29 @@ function App() {
     }
   };
 
-  const handleUpdateWedding = async (mongoId: string, updatedData: Partial<Wedding>) => {
-    setIsLoading(true);
-    setError(null);
+  const handleWeddingUpdate = async (updatedWedding: Wedding) => {
+    if (!updatedWedding._id) return;
     
     try {
-      console.log('Updating wedding with ID:', mongoId);
-      console.log('Update data:', updatedData);
-      
-      // Prepare the data for the API
-      const dataToUpdate = {
-        ...updatedData,
-        date: updatedData.date 
-          ? (updatedData.date instanceof Date 
-            ? updatedData.date.toISOString()
-            : new Date(updatedData.date).toISOString())
-          : undefined
-      };
-      
-      console.log('Data being sent to server:', dataToUpdate);
-      
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('Veuillez vous connecter pour mettre à jour un mariage');
-        setIsLoading(false);
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/weddings/${mongoId}`, {
+      const response = await fetch(`/api/weddings/${updatedWedding._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(dataToUpdate)
+        body: JSON.stringify(updatedWedding),
       });
 
-      console.log('App - Update response status:', response.status);
-      
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Update error response:', errorData);
-        
-        // Enhanced error message based on the type of error
-        let errorMessage = errorData.message || `Erreur: ${response.status} ${response.statusText}`;
-        if (response.status === 404) {
-          errorMessage = `Mariage non trouvé (ID: ${errorData.requestedId}). Veuillez rafraîchir la page.`;
-        } else if (errorData.details) {
-          errorMessage += ` - ${errorData.details}`;
-        }
-        
-        throw new Error(errorMessage);
+        throw new Error('Failed to update wedding');
       }
 
-      const updatedWedding = await response.json();
-      console.log('Updated wedding from server:', updatedWedding);
-      
-      // Update the weddings list with the new data
-      setWeddings(prevWeddings =>
-        prevWeddings.map(w =>
-          (w._id === mongoId || w.id === mongoId) 
-            ? { ...updatedWedding, date: new Date(updatedWedding.date) }
-            : w
+      setWeddings(prevWeddings => 
+        prevWeddings.map(wedding => 
+          wedding._id === updatedWedding._id ? updatedWedding : wedding
         )
       );
-
-      // Update selected wedding if it's the one that was just modified
-      if (selectedWedding && (selectedWedding._id === mongoId || selectedWedding.id === mongoId)) {
-        setSelectedWedding({ ...updatedWedding, date: new Date(updatedWedding.date) });
-      }
-
-      console.log('Wedding updated successfully');
-      
-      // Refresh the weddings list to ensure we have the latest data
-      fetchWeddings();
-      
-    } catch (err) {
-      console.error('Error updating wedding:', err);
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue lors de la mise à jour du mariage');
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      console.error('Error updating wedding:', error);
     }
   };
 
@@ -322,7 +264,7 @@ function App() {
                   setView('dashboard');
                 }}
                 onDelete={handleDeleteWedding}
-                onUpdate={handleUpdateWedding}
+                onUpdate={handleWeddingUpdate}
               />
             )}
 

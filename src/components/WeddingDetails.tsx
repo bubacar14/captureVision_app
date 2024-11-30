@@ -1,141 +1,111 @@
-import { format } from 'date-fns';
-import { ArrowLeft, MapPin, Users, Bell, Phone, CalendarDays, FileText, Trash2, Edit2, Save, X } from 'lucide-react';
-import { Wedding } from '../types';
 import { useState } from 'react';
+import { format } from 'date-fns';
+import type { Wedding, WeddingFormData } from '../types';
+import { ArrowLeft, MapPin, Users, Bell, Phone, CalendarDays, FileText, Trash2, Edit2, Save, X } from 'lucide-react';
 
 interface WeddingDetailsProps {
   wedding: Wedding;
   onBack: () => void;
   onDelete: (id: string) => void;
-  onUpdate: (id: string, updatedWedding: Partial<Wedding>) => void;
+  onUpdate: (wedding: Wedding) => void;
 }
 
 export default function WeddingDetails({ wedding, onBack, onDelete, onUpdate }: WeddingDetailsProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedWedding, setEditedWedding] = useState(wedding);
+  const [editedWedding, setEditedWedding] = useState<WeddingFormData>({
+    clientName: wedding.clientName,
+    date: format(new Date(wedding.date), 'yyyy-MM-dd'),
+    venue: wedding.venue,
+    phoneNumber: wedding.phoneNumber,
+    notes: wedding.notes || '',
+    guestCount: wedding.guestCount,
+    notifications: {
+      oneWeek: wedding.notifications?.oneWeek || false,
+      threeDays: wedding.notifications?.threeDays || false,
+      oneDay: wedding.notifications?.oneDay || false
+    }
+  });
 
   const handleDelete = () => {
-    console.log('Attempting to delete wedding with data:', {
-      id: wedding._id,
-      clientName: wedding.clientName,
-      fullWedding: wedding
-    });
-    
     if (wedding._id) {
-      if (window.confirm('Êtes-vous sûr de vouloir supprimer ce mariage ? Cette action est irréversible.')) {
-        onDelete(wedding._id);
-      }
-    } else {
-      console.error('Cannot delete wedding: No ID provided');
-      // Optionally show a user-friendly error message
+      onDelete(wedding._id);
     }
   };
 
   const handleEdit = () => {
-    
     setIsEditing(true);
-    setEditedWedding(wedding);
+    setEditedWedding({
+      clientName: wedding.clientName,
+      date: format(new Date(wedding.date), 'yyyy-MM-dd'),
+      venue: wedding.venue,
+      phoneNumber: wedding.phoneNumber,
+      notes: wedding.notes || '',
+      guestCount: wedding.guestCount,
+      notifications: {
+        oneWeek: wedding.notifications?.oneWeek || false,
+        threeDays: wedding.notifications?.threeDays || false,
+        oneDay: wedding.notifications?.oneDay || false
+      }
+    });
   };
 
   const handleSave = () => {
-    console.log('WeddingDetails - Original wedding:', wedding);
-    console.log('WeddingDetails - Edited wedding:', editedWedding);
-    
-    // Ensure we have a valid wedding ID
-    if (!wedding._id) {
-      console.error('Wedding ID is missing');
-      return;
-    }
-
-    // Préparer les données pour l'API
-    const updatedData: Partial<Wedding> = {
-      _id: wedding._id, // Include the ID in the update data
-      clientName: editedWedding.clientName ?? '', // Use nullish coalescing to provide empty string if undefined
-      date: editedWedding.date 
-        ? (editedWedding.date instanceof Date 
-          ? editedWedding.date 
-          : new Date(editedWedding.date)) 
-        : undefined,
-      venue: editedWedding.venue ?? '',
-      phoneNumber: editedWedding.phoneNumber ?? '',
-      contactEmail: editedWedding.contactEmail ?? '',
-      notes: editedWedding.notes ?? ''
+    const updatedWedding: Wedding = {
+      ...wedding,
+      clientName: editedWedding.clientName,
+      date: new Date(editedWedding.date),
+      venue: editedWedding.venue,
+      phoneNumber: editedWedding.phoneNumber,
+      notes: editedWedding.notes,
+      guestCount: editedWedding.guestCount,
+      notifications: {
+        oneWeek: editedWedding.notifications.oneWeek,
+        threeDays: editedWedding.notifications.threeDays,
+        oneDay: editedWedding.notifications.oneDay
+      }
     };
 
-    // Remove undefined values
-    Object.keys(updatedData).forEach(key => 
-      updatedData[key as keyof Wedding] === undefined && delete updatedData[key as keyof Wedding]
-    );
-
-    onUpdate(wedding._id, updatedData);
+    onUpdate(updatedWedding);
     setIsEditing(false);
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    setEditedWedding(wedding);
+    setEditedWedding({
+      clientName: wedding.clientName,
+      date: format(new Date(wedding.date), 'yyyy-MM-dd'),
+      venue: wedding.venue,
+      phoneNumber: wedding.phoneNumber,
+      notes: wedding.notes || '',
+      guestCount: wedding.guestCount,
+      notifications: {
+        oneWeek: wedding.notifications?.oneWeek || false,
+        threeDays: wedding.notifications?.threeDays || false,
+        oneDay: wedding.notifications?.oneDay || false
+      }
+    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    console.log('Field changed:', name, 'New value:', value);
-
-    // Gérer spécialement le champ date
-    if (name === 'date') {
-      try {
-        const newDate = new Date(value);
-        if (!isNaN(newDate.getTime())) {
-          setEditedWedding(prev => ({
-            ...prev,
-            date: newDate
-          }));
-        }
-      } catch (error) {
-        console.error('Invalid date format:', error);
-      }
-      return;
-    }
-
-    // Gérer le champ time
-    if (name === 'time') {
-      try {
-        const [hours, minutes] = value.split(':');
-        const currentDate = new Date(editedWedding.date);
-        currentDate.setHours(parseInt(hours, 10), parseInt(minutes, 10));
-        
-        if (!isNaN(currentDate.getTime())) {
-          setEditedWedding(prev => ({
-            ...prev,
-            date: currentDate
-          }));
-        }
-      } catch (error) {
-        console.error('Invalid time format:', error);
-      }
-      return;
-    }
-
-    // Gérer le champ guestCount
-    if (name === 'guestCount') {
-      const numberValue = parseInt(value, 10);
-      if (!isNaN(numberValue) && numberValue >= 0) {
-        setEditedWedding(prev => ({
+    const { name, value, type } = e.target;
+    
+    if (type === 'checkbox') {
+      const [parent, child] = name.split('.');
+      if (parent === 'notifications') {
+        setEditedWedding((prev: WeddingFormData) => ({
           ...prev,
-          guestCount: numberValue
+          notifications: {
+            ...prev.notifications,
+            [child]: (e.target as HTMLInputElement).checked
+          }
         }));
       }
-      return;
-    }
-
-    // Pour les autres champs
-    setEditedWedding(prev => {
-      const updated = {
+    } else {
+      setEditedWedding((prev: WeddingFormData) => ({
         ...prev,
         [name]: value
-      };
-      console.log('Updated wedding state:', updated);
-      return updated;
-    });
+      }));
+    }
   };
 
   return (
@@ -219,14 +189,7 @@ export default function WeddingDetails({ wedding, onBack, onDelete, onUpdate }: 
                         <input
                           type="date"
                           name="date"
-                          value={editedWedding.date ? format(new Date(editedWedding.date), 'yyyy-MM-dd') : ''}
-                          onChange={handleChange}
-                          className="w-full bg-gray-600/50 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-200"
-                        />
-                        <input
-                          type="time"
-                          name="time"
-                          value={editedWedding.date ? format(new Date(editedWedding.date), 'HH:mm') : ''}
+                          value={editedWedding.date}
                           onChange={handleChange}
                           className="w-full bg-gray-600/50 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-200"
                         />
@@ -234,9 +197,6 @@ export default function WeddingDetails({ wedding, onBack, onDelete, onUpdate }: 
                     ) : (
                       <div className="text-white">
                         {format(new Date(wedding.date), 'PPP')}
-                        <div className="text-sm text-gray-400">
-                          {format(new Date(wedding.date), 'HH:mm')}
-                        </div>
                       </div>
                     )}
                   </div>
@@ -308,15 +268,9 @@ export default function WeddingDetails({ wedding, onBack, onDelete, onUpdate }: 
                     <label className="flex items-center space-x-2 text-gray-300">
                       <input
                         type="checkbox"
-                        name="oneWeek"
+                        name="notifications.oneWeek"
                         checked={editedWedding.notifications?.oneWeek}
-                        onChange={(e) => setEditedWedding(prev => ({
-                          ...prev,
-                          notifications: {
-                            ...prev.notifications,
-                            oneWeek: e.target.checked
-                          }
-                        }))}
+                        onChange={handleChange}
 
                         className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
                         disabled={!isEditing}
@@ -326,15 +280,9 @@ export default function WeddingDetails({ wedding, onBack, onDelete, onUpdate }: 
                     <label className="flex items-center space-x-2 text-gray-300">
                       <input
                         type="checkbox"
-                        name="threeDays"
+                        name="notifications.threeDays"
                         checked={editedWedding.notifications?.threeDays}
-                        onChange={(e) => setEditedWedding(prev => ({
-                          ...prev,
-                          notifications: {
-                            ...prev.notifications,
-                            threeDays: e.target.checked
-                          }
-                        }))}
+                        onChange={handleChange}
 
                         className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
                         disabled={!isEditing}
@@ -344,15 +292,9 @@ export default function WeddingDetails({ wedding, onBack, onDelete, onUpdate }: 
                     <label className="flex items-center space-x-2 text-gray-300">
                       <input
                         type="checkbox"
-                        name="oneDay"
+                        name="notifications.oneDay"
                         checked={editedWedding.notifications?.oneDay}
-                        onChange={(e) => setEditedWedding(prev => ({
-                          ...prev,
-                          notifications: {
-                            ...prev.notifications,
-                            oneDay: e.target.checked
-                          }
-                        }))}
+                        onChange={handleChange}
 
                         className="rounded border-gray-600 text-blue-500 focus:ring-blue-500"
                         disabled={!isEditing}

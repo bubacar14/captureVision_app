@@ -13,7 +13,7 @@ import {
   endOfWeek,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
-import { Wedding } from '../types';
+import type { Wedding } from '../types';
 
 interface CalendarViewProps {
   weddings: Wedding[];

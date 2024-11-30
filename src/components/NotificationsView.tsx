@@ -1,5 +1,5 @@
 import { Bell, Calendar, Clock, MapPin } from 'lucide-react';
-import { Wedding, View } from '../types';
+import type { Wedding, View } from '../types';
 import { format, isAfter, addDays, addWeeks } from 'date-fns';
 import { fr as frLocale } from 'date-fns/locale';
 import { fr } from '../i18n/fr';

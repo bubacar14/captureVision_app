@@ -124,7 +124,7 @@ async function startServer() {
       console.log('SIGTERM received. Shutting down gracefully...');
       server.close(() => {
         console.log('Server closed');
-        mongoose.connection.close(false, () => {
+        mongoose.connection.close().then(() => {
           console.log('MongoDB connection closed');
           process.exit(0);
         });
