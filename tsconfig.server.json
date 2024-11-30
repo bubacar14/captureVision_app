@@ -13,7 +13,8 @@
     "resolveJsonModule": true,
     "declaration": true,
     "declarationDir": "./dist",
-    "types": ["vite/client", "node"],
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "types": ["node"],
     "paths": {
       "@/*": ["./src/*"]
     }
@@ -23,6 +24,7 @@
     "src/routes/**/*",
     "src/middleware/**/*",
     "src/models/**/*",
+    "src/types/**/*",
     "src/types.ts",
     "src/config.ts",
     "src/vite-env.d.ts"
