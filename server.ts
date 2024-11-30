@@ -77,9 +77,20 @@ const connectDB = async () => {
       throw new Error('MongoDB URI is not defined');
     }
 
+    console.log('=== MongoDB Connection Info ===');
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('MongoDB URI exists:', !!process.env.MONGODB_URI);
+    console.log('MongoDB URI format:', mongoURI.split('@')[1]?.split('/')[0] || 'Invalid URI format');
+
     console.log('Connecting to MongoDB...');
     await mongoose.connect(mongoURI);
-    console.log('MongoDB Connected...');
+    
+    const dbName = mongoose.connection.db?.databaseName;
+    const collections = await mongoose.connection.db?.listCollections().toArray();
+    
+    console.log('MongoDB Connected Successfully');
+    console.log('Database Name:', dbName);
+    console.log('Available Collections:', collections?.map(c => c.name).join(', '));
   } catch (err) {
     console.error('MongoDB connection error:', err);
     process.exit(1);

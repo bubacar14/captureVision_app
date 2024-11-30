@@ -147,3 +147,55 @@ router.get('/test-db', async (req, res) => {
     });
   }
 });
+
+// Test MongoDB connection with detailed information
+router.get('/test-mongodb', async (req, res) => {
+  try {
+    console.log('=== MongoDB Connection Test ===');
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('MongoDB URI exists:', !!process.env.MONGODB_URI);
+    
+    // Check MongoDB connection state
+    const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+    console.log('Connection state:', states[mongoose.connection.readyState]);
+    
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI is not defined in environment variables');
+    }
+
+    // Test database operations
+    const dbInfo = {
+      connectionState: states[mongoose.connection.readyState],
+      database: mongoose.connection.db?.databaseName || 'Not connected',
+      collections: mongoose.connection.db ? await mongoose.connection.db.listCollections().toArray() : [],
+      modelNames: mongoose.modelNames(),
+      environment: process.env.NODE_ENV,
+    };
+
+    // Test Wedding collection
+    const weddingCount = await Wedding.countDocuments();
+    const sampleWedding = await Wedding.findOne();
+
+    return res.json({
+      status: 'success',
+      message: 'MongoDB connection test results',
+      databaseInfo: dbInfo,
+      weddingCollection: {
+        count: weddingCount,
+        sampleWedding: sampleWedding ? {
+          id: sampleWedding._id,
+          clientName: sampleWedding.clientName,
+          date: sampleWedding.date
+        } : null
+      }
+    });
+
+  } catch (error) {
+    console.error('MongoDB Test Error:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
