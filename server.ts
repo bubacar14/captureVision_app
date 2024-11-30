@@ -32,9 +32,9 @@ app.use(requestLogger);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://capturevision-app.onrender.com', 'https://capturevision-app.onrender.com/']
-    : 'http://localhost:5173',
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://capturevision-app.onrender.com']
+    : ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
@@ -46,10 +46,10 @@ app.use('/api/auth', authRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req: Request, res: Response) => {
-  res.status(200).json({
+  res.json({
     status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    environment: process.env.NODE_ENV,
+    timestamp: new Date().toISOString()
   });
 });
 
